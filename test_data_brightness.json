@@ -1,0 +1,35 @@
+{
+    "clientId": "1",
+    "params": [
+        {
+            "objectId": "1",
+            "algorithm": "4",
+            "initBrightness": 100,
+            "weatherStatus": "1",
+            "location": "1",
+            "startTime": 0,
+            "stopTime": 1,
+            "step": 1
+        },
+        {
+            "objectId": "2",
+            "algorithm": "4",
+            "initBrightness": 100,
+            "weatherStatus": "1",
+            "location": "1",
+            "startTime": 0,
+            "stopTime": 1,
+            "step": 1
+        },
+        {
+            "objectId": "3",
+            "algorithm": "4",
+            "initBrightness": 100,
+            "weatherStatus": "1",
+            "location": "1",
+            "startTime": 0,
+            "stopTime": 1,
+            "step": 1
+        }
+    ]
+}
