@@ -498,6 +498,7 @@ def WeatherEnvTest():
 
     def update(step):
         retval = WeatherEnvObj.get_value_sequence(pt_pos=pt_pos, cur_t=step, mode="mesh")
+        fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}".format(step))
         return weather_condition_plot(retval)
 
     ani = FuncAnimation(fig2,

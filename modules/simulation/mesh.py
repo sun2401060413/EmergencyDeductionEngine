@@ -142,6 +142,7 @@ def MeshSceneTest():
     )
     print("----- get meshgrid test -----")
     print(LocalMeshSceneObj.get_meshgrid(mode="2D"))  # PASS
+    print("size:", len(LocalMeshSceneObj.get_meshgrid(mode="2D")))
 
     print("----- get_delta_xyz test -----")
     A = [1, 1, 1]
