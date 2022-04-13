@@ -254,6 +254,14 @@ class EvolutionBase(Element):
                 return retval
             else:
                 return self.spread * self.stride
+        else:
+            if len(self.space_evolution_function.functions_list) > 0:
+                retval = 0
+                for func in self.space_evolution_function.functions_list:
+                    retval = retval + call_function(self.space_evolution_function.params, func)*self.stride
+                return retval
+            else:
+                return self.spread * self.stride
 
     def _delta_time_devolution(self):
         # mode: point or mesh
@@ -284,19 +292,33 @@ class EvolutionBase(Element):
                 return retval
             else:
                 return self.dspread * self.stride
+        else:
+            if len(self.space_devolution_function.functions_list) > 0:
+                retval = 0
+                for func in self.space_devolution_function.functions_list:
+                    retval = retval + call_function(self.space_devolution_function.params, func)*self.stride
+                return retval
+            else:
+                return self.dspread * self.stride
 
     def update(self):
         # TODO: distribution in space
-        if self._mode is "point":
-            self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
-            if self.update_callback is not None:
-                call_function(self, self.update_callback)
-            return self._value
-        else:
-            self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
-            if self.update_callback is not None:
-                call_function(self, self.update_callback)
-            return self._value
+        # if self._mode is "point":
+        #     self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
+        #     if self.update_callback is not None:
+        #         call_function(self, self.update_callback)
+        #     return self._value
+        # else:
+        #     self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
+        #     if self.update_callback is not None:
+        #         call_function(self, self.update_callback)
+        #     return self._value
+
+        self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
+        # self._value = np.round(np.clip(self._))
+        if self.update_callback is not None:
+            call_function(self, self.update_callback)
+        return self._value
 
     def set_pt_pos(self, pt_pos=[0, 0, 0]):
         """
@@ -308,11 +330,15 @@ class EvolutionBase(Element):
     def get_pt_pos(self):
         return self._pt_pos
 
+    def set_value(self, value):
+        self._value = value
+
     def get_value(self, pt_pos=None):
         if pt_pos is None:
             return self._value
         else:
-            self._value
+            self._value # TODO: SAME
+
 
 class FunctionsBase:
     """
@@ -325,7 +351,7 @@ class FunctionsBase:
     def add_functions(self, func):
         self.functions_list.append(func)
 
-    def delele_functions(self,func):
+    def delele_functions(self, func):
         self.functions_list.remove(func)
 
     def clear_functions(self):
@@ -337,331 +363,207 @@ def call_function(args, f):
 
 # ===== TEST CASE =====
 
+
 def update_callback_test(Obj : EvolutionBase):
     Obj.time_evolution_function.params = [Obj.get_value()]
 
-def EvolutionTest():
-    """
-    A test for evolution
-    :return:
-    Assuming that there are several units affecting the hazard.
-    """
-    print("===== EvolutionBase test ======")
-    # print("----- Single point test: without evolution functions -----")
-    # EvolutionBaseObj = EvolutionBase(id="01",
-    #                                  name="EvolutionTest01",
-    #                                  class_name="Hazardbase",
-    #                                  init_value=0,
-    #                                  init_grad=10,
-    #                                  init_dgrad=-5,
-    #                                  init_spread=-0.01,
-    #                                  init_dspread=-0.01,
-    #                                  min_value=0,
-    #                                  max_value=100,
-    #                                  total_sum=2000,
-    #                                  )
-    # # Define a custom evolution function
-    # EvolutionBaseObj.time_evolution_function.params = [1, 1]
-    #
-    # def update_callback(Obj: EvolutionBase):
-    #     """A test for update callback """
-    #     # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
-    #     Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum), Obj.grad]
-    #     Obj.current_sum = Obj.current_sum + Obj.get_value()
-    #     pass
-    #
-    # EvolutionBaseObj.update_callback = update_callback
-    #
+def EvolutionsTestCase_01():
+    print("----- Single point test: without evolution functions -----")
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=0,
+                                     init_grad=10,
+                                     init_dgrad=-5,
+                                     init_spread=-0.01,
+                                     init_dspread=-0.01,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=2000,
+                                     )
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [1, 1]
+
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum), Obj.grad]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[-1] if args[0]>0 else 0
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig1, ax1 = plt.subplots(1, 1)
+    ax1.set_xlabel('时间(分钟)')
+    ax1.set_ylabel('燃烧功率(兆瓦)')
+
+    t = np.array(list(range(0, 100)))
+    x, y = [], []
+
+    def init():
+        x, y = [], []
+        im = plt.plot(x, y, "r-")
+        return im
+
+    def update_point(step):
+        x.append(step)
+        y.append(EvolutionBaseObj.update())
+        im = plt.plot(x, y, "r-")
+        return im
+
+    ani = FuncAnimation(fig1, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_0.gif")
+    plt.show()
+
+def EvolutionsTestCase_02():
+    print("----- Single point test: with evolution functions -----")
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=0,
+                                     init_grad=0.5,
+                                     init_dgrad=0.1,
+                                     init_spread=-0.01,
+                                     init_dspread=-0.01,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=1000,
+                                     )
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [1]
     # def Ev_func1(args):
-    #     return args[-1] if args[0]>0 else 0
-    #
-    # EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
-    #
-    #
-    # import matplotlib.pyplot as plt
-    # from matplotlib.animation import FuncAnimation
-    # plt.rcParams['font.sans-serif'] = ['SimHei']
-    # plt.rcParams['axes.unicode_minus'] = False
-    #
-    # fig1, ax1 = plt.subplots(1, 1)
-    # ax1.set_xlabel('时间(分钟)')
-    # ax1.set_ylabel('燃烧功率(兆瓦)')
-    #
-    # t = np.array(list(range(0, 100)))
-    # x, y = [], []
-    #
-    # def init():
-    #     x, y = [], []
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # def update_point(step):
-    #     x.append(step)
-    #     y.append(EvolutionBaseObj.update())
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # ani = FuncAnimation(fig1, update_point, frames=t,
-    #                     init_func=init, interval=300, repeat=False)
-    #
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_0.gif")
-    # plt.show()
-    pass
-    # print("----- Single point test: with evolution functions -----")
-    # EvolutionBaseObj = EvolutionBase(id="01",
-    #                                  name="EvolutionTest01",
-    #                                  class_name="Hazardbase",
-    #                                  init_value=0,
-    #                                  init_grad=0.5,
-    #                                  init_dgrad=0.1,
-    #                                  init_spread=-0.01,
-    #                                  init_dspread=-0.01,
-    #                                  min_value=0,
-    #                                  max_value=100,
-    #                                  total_sum=1000,
-    #                                  )
-    # # Define a custom evolution function
-    # EvolutionBaseObj.time_evolution_function.params = [1]
-    # # def Ev_func1(args):
-    # # """
-    # # Test: PASS
-    # # """
-    # #     # assuming that the args[0] is the grad
-    # #     return args[0]
-    # def update_callback(Obj: EvolutionBase):
-    #     """A test for update callback """
-    #     # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
-    #     Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum+Obj.get_value()/100)]
-    #     Obj.current_sum = Obj.current_sum + Obj.get_value()
-    #     pass
-    #
-    # EvolutionBaseObj.update_callback = update_callback
-    #
-    # def Ev_func1(args):
-    #     return args[0]/100
-    #
-    # EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
-    #
-    #
-    # import matplotlib.pyplot as plt
-    # from matplotlib.animation import FuncAnimation
-    # plt.rcParams['font.sans-serif'] = ['SimHei']
-    # plt.rcParams['axes.unicode_minus'] = False
-    #
-    # fig1, ax1 = plt.subplots(1, 1)
-    # ax1.set_xlabel('时间(分钟)')
-    # ax1.set_ylabel('燃烧功率(兆瓦)')
-    #
-    # t = np.array(list(range(0, 35)))
-    # x, y = [], []
-    #
-    # def init():
-    #     x, y = [], []
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # def update_point(step):
-    #     x.append(step)
-    #     y.append(EvolutionBaseObj.update())
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # ani = FuncAnimation(fig1, update_point, frames=t,
-    #                     init_func=init, interval=200, repeat=False)
-    #
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_function.gif")
-    # plt.show()
-    pass
-    # print("----- Single point test: with devolution functions -----")
-    # EvolutionBaseObj = EvolutionBase(id="01",
-    #                                  name="EvolutionTest01",
-    #                                  class_name="Hazardbase",
-    #                                  init_value=0,
-    #                                  init_grad=0.5,
-    #                                  init_dgrad=-0.01,
-    #                                  init_spread=-0.01,
-    #                                  init_dspread=-0.01,
-    #                                  min_value=0,
-    #                                  max_value=100,
-    #                                  total_sum=2000,
-    #                                  )
-    # # Define a custom evolution function
-    # EvolutionBaseObj.time_evolution_function.params = [1]
-    #
-    # def update_callback(Obj: EvolutionBase):
-    #     """A test for update callback """
-    #     # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
-    #     Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum)/10]
-    #     Obj.current_sum = Obj.current_sum + Obj.get_value()
-    #     pass
-    #
-    # EvolutionBaseObj.update_callback = update_callback
-    #
-    # def Ev_func1(args):
-    #     return args[0]/100
-    #
-    # def Ev_func2(args):
-    #     return args[0]/50
-    #
-    # EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
-    #
-    #
-    # import matplotlib.pyplot as plt
-    # from matplotlib.animation import FuncAnimation
-    # plt.rcParams['font.sans-serif'] = ['SimHei']
-    # plt.rcParams['axes.unicode_minus'] = False
-    #
-    # fig1, ax1 = plt.subplots(1, 1)
-    # ax1.set_xlabel('时间(分钟)')
-    # ax1.set_ylabel('燃烧功率(兆瓦)')
-    #
-    # t = np.array(list(range(0, 100)))
-    # x, y = [], []
-    #
-    # def init():
-    #     x, y = [], []
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # def update_point(step):
-    #     x.append(step)
-    #     y.append(EvolutionBaseObj.update())
-    #     print("step:", step)
-    #     if step == 10:
-    #         EvolutionBaseObj.time_evolution_function.add_functions(Ev_func2)
-    #         pass
-    #     im = plt.plot(x, y, "r-")
-    #     return im
-    #
-    # ani = FuncAnimation(fig1, update_point, frames=t,
-    #                     init_func=init, interval=300, repeat=False)
-    #
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_function_multi.gif")
-    # plt.show()
-    pass
-    # print("----- Mesh points test: with time evolution functions -----")
-    # # init_value = np.zeros([10, 10])
-    # import random
-    # x, y = np.mgrid[-5:5:10j, -5:5:10j]
-    # sigma = 2
-    # z = np.round(np.array(1 / (2 * np.pi * (sigma ** 2)) * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))*1000, 3)
-    # init_value = z
-    # print(init_value)
-    # # init_value = np.array([[random.randint(0, 50) for j in range(0, 10)] for i in range(0, 10)])
-    # init_grad = np.ones([10, 10])*0.05
-    # init_dgrad = np.ones([10, 10])*-0.01
-    # init_spread = np.ones([10, 10])*-0.01
-    # init_dspread = np.ones([10, 10])*-0.01
-    # total_sum = np.ones([10, 10])*2000
-    #
-    # EvolutionBaseObj = EvolutionBase(id="01",
-    #                                  name="EvolutionTest01",
-    #                                  class_name="Hazardbase",
-    #                                  init_value=init_value,
-    #                                  init_grad=init_grad,
-    #                                  init_dgrad=init_dgrad,
-    #                                  init_spread=init_spread,
-    #                                  init_dspread=init_dspread,
-    #                                  min_value=0,
-    #                                  max_value=100,
-    #                                  total_sum=total_sum,
-    #                                  area=[10, 10, 10]
-    #                                  )
-    # # Define a custom evolution function
-    # EvolutionBaseObj.time_evolution_function.params = [np.zeros([10, 10]), np.zeros([10, 10])]        # init
-    # EvolutionBaseObj.set_mode(mode="mesh")
-    #
-    # def update_callback(Obj: EvolutionBase):
-    #     """A test for update callback """
-    #     # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
-    #     Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum)/10, Obj.grad]
-    #     Obj.current_sum = Obj.current_sum + Obj.get_value()
-    #     pass
-    #
-    # EvolutionBaseObj.update_callback = update_callback
-    #
-    # # def Ev_func1(args):
-    # #     return np.multiply(args[1], np.array(args[0] > 0).astype(int))
-    #
-    # def Ev_func1(args):
-    #     return args[0]/100
-    #
-    # def Ev_func2(args):
-    #     return args[0]/50
-    #
-    # EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
-    #
-    #
-    # import matplotlib.pyplot as plt
-    # from matplotlib.animation import FuncAnimation
-    # plt.rcParams['font.sans-serif'] = ['SimHei']
-    # plt.rcParams['axes.unicode_minus'] = False
-    #
-    # # fig1, ax1 = plt.subplots(1, 1)
-    # fig2 = plt.figure(num=2, figsize=(128, 108))
-    # # ax1.set_xlabel('时间(分钟)')
-    # # ax1.set_ylabel('燃烧功率(兆瓦)')
-    # x, y = [], []
-    #
-    # def Evolution_plot(retval: np.ndarray):
-    #     plt.subplot(1, 2, 1)
-    #     meshval = retval.reshape([10, 10])
-    #     im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
-    #     plt.xlabel('经度方向坐标x')
-    #     plt.ylabel('纬度方向坐标y')
-    #     cb = plt.colorbar()
-    #     plt.xticks(np.arange(0, 10, 10))  # fixed
-    #     plt.yticks(np.arange(0, 10, 10))  # fixed
-    #     cb.set_label('热功率 单位(MW)')
-    #     plt.title('热功率空间分布图')
-    #
-    #     ax1 = plt.subplot(1, 2, 2)
-    #     im = plt.plot(x, y1, "r-")
-    #     im = plt.plot(x, y2, "g-")
-    #     im = plt.plot(x, y3, "b-")
-    #     ax1.set_xlabel('时间(分钟)')
-    #     ax1.set_ylabel('燃烧功率(兆瓦)')
-    #     return im
-    #
-    # t = np.array(list(range(0, 60)))
-    #
-    # # ax1.set_xlim(0, np.max(t))
-    # # ax1.set_ylim(0, EvolutionBaseObj.max_value+10)
-    #
-    # x, y1, y2, y3 = [], [], [], []
-    #
-    # def init():
-    #     x, y1, y2, y3 = [], [], [], []
-    #     # im = plt.plot(x, y, "r-")
-    #     retval = EvolutionBaseObj.update()
-    #     # im = plt.imshow(retval)
-    #     print(retval)
-    #     return Evolution_plot(retval)
-    #
-    # def update_point(step):
-    #     retval = EvolutionBaseObj.update()
-    #     x.append(step)
-    #     y1.append(retval[0][0])
-    #     y2.append(retval[3][3])
-    #     y3.append(retval[5][5])
-    #     if step == 10:
-    #         EvolutionBaseObj.time_evolution_function.add_functions(Ev_func2)
-    #     print(retval)
-    #     # im = plt.imshow(retval)
-    #
-    #     fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
-    #     return Evolution_plot(retval)
-    #
-    # ani = FuncAnimation(fig2, update_point, frames=t,
-    #                     init_func=init, interval=300, repeat=False)
-    #
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.gif")
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.mp4",  fps=30, extra_args=['-vcodec', 'libx264'])
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.gif", writer='imagemagick')
-    # # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.gif").to_jshtml()
-    # plt.show()
-    pass
-    print("----- Mesh points test: with space evolution functions -----")
+    # """
+    # Test: PASS
+    # """
+    #     # assuming that the args[0] is the grad
+    #     return args[0]
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum+Obj.get_value()/100)]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[0]/100
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig1, ax1 = plt.subplots(1, 1)
+    ax1.set_xlabel('时间(分钟)')
+    ax1.set_ylabel('燃烧功率(兆瓦)')
+
+    t = np.array(list(range(0, 35)))
+    x, y = [], []
+
+    def init():
+        x, y = [], []
+        im = plt.plot(x, y, "r-")
+        return im
+
+    def update_point(step):
+        x.append(step)
+        y.append(EvolutionBaseObj.update())
+        im = plt.plot(x, y, "r-")
+        return im
+
+    ani = FuncAnimation(fig1, update_point, frames=t,
+                        init_func=init, interval=200, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_function.gif")
+    plt.show()
+
+def EvolutionsTestCase_03():
+    print("----- Single point test: with devolution functions -----")
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=0,
+                                     init_grad=0.5,
+                                     init_dgrad=-0.01,
+                                     init_spread=-0.01,
+                                     init_dspread=-0.01,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=2000,
+                                     )
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [1]
+
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum)/10]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[0]/100
+
+    def Ev_func2(args):
+        return args[0]/50
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig1, ax1 = plt.subplots(1, 1)
+    ax1.set_xlabel('时间(分钟)')
+    ax1.set_ylabel('燃烧功率(兆瓦)')
+
+    t = np.array(list(range(0, 100)))
+    x, y = [], []
+
+    def init():
+        x, y = [], []
+        im = plt.plot(x, y, "r-")
+        return im
+
+    def update_point(step):
+        x.append(step)
+        y.append(EvolutionBaseObj.update())
+        print("step:", step)
+        if step == 10:
+            EvolutionBaseObj.time_evolution_function.add_functions(Ev_func2)
+            pass
+        im = plt.plot(x, y, "r-")
+        return im
+
+    ani = FuncAnimation(fig1, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_function_multi.gif")
+    plt.show()
+
+def EvolutionsTestCase_04():
+    print("----- Mesh points test: with time evolution functions -----")
     # init_value = np.zeros([10, 10])
     import random
     x, y = np.mgrid[-5:5:10j, -5:5:10j]
@@ -701,9 +603,6 @@ def EvolutionTest():
         pass
 
     EvolutionBaseObj.update_callback = update_callback
-
-    # def Ev_func1(args):
-    #     return np.multiply(args[1], np.array(args[0] > 0).astype(int))
 
     def Ev_func1(args):
         return args[0]/100
@@ -781,6 +680,176 @@ def EvolutionTest():
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.mp4",  fps=30, extra_args=['-vcodec', 'libx264'])
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.gif", writer='imagemagick')
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\evolution_base_functions_with_space.gif").to_jshtml()
+    plt.show()
+
+def EvolutionsTestCase_05():
+    print("----- Mesh points test: with space evolution functions -----")
+    # init_value = np.zeros([10, 10])
+    # =============== init data ===============
+    # import random
+    # zero_bound = 2
+    # x, y = np.mgrid[-5:5:11j, -5:5:11j]
+    # sigma = 2
+    # z = np.round(np.array(1 / (2 * np.pi * (sigma ** 2)) * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))*100, 3)
+    # print(np.where(z < zero_bound))
+    # z[np.where(z < zero_bound)] = 0
+    # init_value = z
+    # print(init_value, init_value.size)
+    # ============== init data ===============
+    minv, maxv, stride = -7, 3, 1
+    x, y = np.meshgrid(range(minv, maxv, stride), range(minv, maxv, stride))
+    xx, yy = x, y
+    print(x, y)
+    init_value = np.zeros([10, 10])
+    init_value[7:8, 7:8] = 1
+    # print(xx, yy)
+
+    # Get the index of the center in matrix
+    cx = np.unique(np.where(x == 0)[1])[0]
+    cy = np.unique(np.where(y == 0)[0])[0]
+
+    h_offset, v_offset, hv_offset = init_value.copy(), init_value.copy(), init_value.copy()
+
+    h_offset[:, 0:cx] = h_offset[:, 1:cx + 1]
+    h_offset[:, cx + 1:-1] = h_offset[:, cx:-2]
+    # print(h_offset)
+
+    v_offset[0:cy, :] = v_offset[1:cy + 1, :]
+    v_offset[cy + 1:-1, :] = v_offset[cy:-2, :]
+    # print(v_offset)
+
+    hv_offset[:, 0:cx] = hv_offset[:, 1:cx + 1]
+    hv_offset[:, cx + 1:-1] = hv_offset[:, cx:-2]
+    hv_offset[0:cy, :] = hv_offset[1:cy + 1, :]
+    hv_offset[cy + 1:-1, :] = hv_offset[cy:-2, :]
+    # print(hv_offset)
+
+    evolution_value = 0.25 * h_offset + 0.25 * v_offset + 0.5 * hv_offset
+    print(evolution_value)
+
+def EvolutionTest():
+    """
+    A test for evolution
+    :return:
+    Assuming that there are several units affecting the hazard.
+    """
+    print("===== EvolutionBase test ======")
+    # EvolutionsTestCase_01()
+    # EvolutionsTestCase_02()
+    # EvolutionsTestCase_03()
+    # EvolutionsTestCase_04()
+    # EvolutionsTestCase_05()
+    print("----- Mesh points test: with space evolution functions -----")
+    # =============== init data ===============
+    minv, maxv, stride = -50, 50, 1
+    x, y = np.meshgrid(range(minv, maxv, stride), range(minv, maxv, stride))
+    xx, yy = x, y
+    # print(x, y)
+    init_value = np.zeros([100, 100])
+    init_value[49:51, 49:51] = 50
+    # print(init_value)
+    init_grad = np.ones([100, 100])*0.05
+    init_dgrad = np.ones([100, 100])*-0.01
+    init_spread = np.ones([100, 100])*-0.01
+    init_dspread = np.ones([100, 100])*-0.01
+    total_sum = np.ones([100, 100])*2000
+
+    # Get the index of the center in matrix
+    cx = np.unique(np.where(x == 0)[1])[0]
+    cy = np.unique(np.where(y == 0)[0])[0]
+
+    def space_evolution(value):
+        h_offset, v_offset, hv_offset = value.copy(), value.copy(), value.copy()
+
+        h_offset[:, 0:cx] = h_offset[:, 1:cx + 1]
+        h_offset[:, cx + 1:-1] = h_offset[:, cx:-2]
+        # print(h_offset)
+
+        v_offset[0:cy, :] = v_offset[1:cy + 1, :]
+        v_offset[cy + 1:-1, :] = v_offset[cy:-2, :]
+        # print(v_offset)
+
+        hv_offset[:, 0:cx] = hv_offset[:, 1:cx + 1]
+        hv_offset[:, cx + 1:-1] = hv_offset[:, cx:-2]
+        hv_offset[0:cy, :] = hv_offset[1:cy + 1, :]
+        hv_offset[cy + 1:-1, :] = hv_offset[cy:-2, :]
+        # print(hv_offset)
+
+        evolution_value = 0.25 * h_offset + 0.25 * v_offset + 0.5 * hv_offset
+        print(evolution_value)
+        return evolution_value
+
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=init_value,
+                                     init_grad=init_grad,
+                                     init_dgrad=init_dgrad,
+                                     init_spread=init_spread,
+                                     init_dspread=init_dspread,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=total_sum,
+                                     area=[10, 10, 10]
+                                     )
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [np.zeros([10, 10]), np.zeros([10, 10])]  # init
+    EvolutionBaseObj.set_mode(mode="mesh")
+
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum) / 10, Obj.grad]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[0] / 100
+
+    def Ev_func2(args):
+        return args[0] / 50
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    fig2 = plt.figure(num=2, figsize=(128, 108))
+    x, y = [], []
+
+    def Evolution_plot(retval: np.ndarray):
+        plt.subplot(1, 1, 1)
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图')
+        return im
+
+    t = np.array(list(range(0, 60)))
+
+    def init():
+        pass
+
+    def update_point(step):
+        # retval = EvolutionBaseObj.update()
+        retval = space_evolution(EvolutionBaseObj.get_value())
+        EvolutionBaseObj.set_value(value=retval)
+        fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
+        return Evolution_plot(retval)
+
+    ani = FuncAnimation(fig2, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution.gif")
+
     plt.show()
 
 if __name__=="__main__":
