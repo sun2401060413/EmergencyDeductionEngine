@@ -48,8 +48,8 @@ class MeshScene(Element):
         self.ct_y = 0
         self.ct_z = 0
 
-        self.mesh = np.zeros([self.xcount, self.ycount, self.zcount])
-        self.meshgrid = None
+        self.mesh = np.zeros([self.xcount, self.ycount, self.zcount])       # save the value
+        self.meshgrid = None                                                # save the coordinate
 
         self.localpos = None  # The origin of relative coordinate in real mesh coordinate
         self.localmesh = None  # relative coordinate of center
@@ -107,7 +107,18 @@ class MeshScene(Element):
 
 class LocalMeshScene(MeshScene):
     """Local mesh"""
-    def __init__(self, length=1, width=1, height=1, l_stride=1, w_stride=1, h_stride=1):
+    def __init__(self, length=1, width=1, height=1, l_stride=1, w_stride=1, h_stride=1, l_start=None, w_start=None, h_start=None):
+        """
+        :param length:
+        :param width:
+        :param height:
+        :param l_stride:
+        :param w_stride:
+        :param h_stride:
+        :param l_start: the start number of mesh on the length axis
+        :param w_start: the start number of mesh on the width axis
+        :param h_start: the start number of mesh on the height axis
+        """
         self.length = length
         self.width = width
         self.height = height
@@ -115,32 +126,51 @@ class LocalMeshScene(MeshScene):
         self.l_stride = l_stride
         self.w_stride = w_stride
         self.h_stride = h_stride
+
+        self.l_start = l_start if l_start is not None else -1 * int(self.length / 2)
+        self.w_start = w_start if w_start is not None else -1 * int(self.width / 2)
+        self.h_start = h_start if h_start is not None else -1 * int(self.height / 2)
+
         super().__init__(
             id=None,
             name=None,
             class_name=None,
-            xrange=[-1 * int(self.width / 2), int(self.width / 2)],
-            yrange=[-1 * int(self.length / 2), int(self.length / 2)],
-            zrange=[-1 * int(self.height / 2), int(self.height / 2)],
+            xrange=[self.w_start, self.w_start + self.width],
+            yrange=[self.l_start, self.l_start + self.length],
+            zrange=[self.h_start, self.h_start + self.height],
             xcount=int(self.width / self.w_stride),
             ycount=int(self.length / self.l_stride),
             zcount=int(self.height / self.h_stride),
         )
-        self.mask = None  # As same size as the AreaScene
-        self._ct_idx = None
 
-    def get_center_index(self, mode="2D"):
+        self.mask = None    # As same size as the AreaScene
+
+        self.get_meshgrid(mode="2D")
+        self.get_origin_index(mode="2D")
+
+    def reset_origin(self, mode="2D", l_start=None, w_start=None, h_start=None):
+        """Reset the origin of the matrix, the default origin is the center of """
+        self.l_start = l_start if l_start is not None else -1 * int(self.length / 2)
+        self.w_start = w_start if w_start is not None else -1 * int(self.width / 2)
+        self.h_start = h_start if h_start is not None else -1 * int(self.height / 2)
+
+        self.xrange = [self.w_start, self.w_start + self.width]
+        self.yrange = [self.l_start, self.l_start + self.length]
+        self.zrange = [self.h_start, self.h_start + self.height]
+
+    def get_origin_index(self, mode="2D"):
         """Get the index of the center in matrix"""
         if self.mesh is None:
             self.get_meshgrid(mode="2D")
 
-        cx = np.unique(np.where(self.pts_x == 0)[1])[0]
-        cy = np.unique(np.where(self.pts_y == 0)[0])[0]
+        min_pts_x, min_pts_y = np.abs(self.pts_x).min(), np.abs(self.pts_y).min()
+        self.ct_x = np.unique(np.where(self.pts_x == min_pts_x)[1])[0]
+        self.ct_y = np.unique(np.where(self.pts_y == min_pts_y)[0])[0]
         if mode is "2D":
-            return [cx, cy]
+            return self.ct_x, self.ct_y
         else:
-            cz = np.unique(np.where(self.pts_z == 0)[2])[0]
-            return [cx, cy, cz]
+            self.ct_z = np.unique(np.where(self.pts_z == 0)[2])[0]
+            return self.ct_x, self.ct_y, self.ct_z
 
 def MeshSceneTest():
     """
@@ -158,6 +188,7 @@ def MeshSceneTest():
     print(MeshSceneObj.get_meshgrid(mode="2D"))
     pass
     print("===== LocalMesh Test =====")
+    print("----- Get meshgrid test -----")  # PASS
     LocalMeshSceneObj = LocalMeshScene(
         length=10,
         width=10,
@@ -166,9 +197,30 @@ def MeshSceneTest():
         w_stride=1,
         h_stride=1
     )
-    print("----- Get meshgrid test -----")                  # PASS
     print(LocalMeshSceneObj.get_meshgrid(mode="2D"))
     print("size:", len(LocalMeshSceneObj.get_meshgrid(mode="2D")))
+
+    print("----- Get meshgrid with custom settings -----")  # PASS
+    LocalMeshSceneObj = LocalMeshScene(
+        length=10,
+        width=10,
+        height=10,
+        l_stride=1,
+        w_stride=1,
+        h_stride=1,
+        l_start=-1,
+        w_start=-1,
+        h_start=-1
+    )
+
+    print(LocalMeshSceneObj.get_meshgrid(mode="2D"))
+    print("size:", len(LocalMeshSceneObj.get_meshgrid(mode="2D")))
+
+    print("----- Reset origin test -----")  # PASS
+    LocalMeshSceneObj.reset_origin(mode="2D", l_start=-3, w_start=-3, h_start=-3)
+    print(LocalMeshSceneObj.get_meshgrid(mode="2D"))
+    print("size:", len(LocalMeshSceneObj.get_meshgrid(mode="2D")))
+
 
     print("----- Get_delta_xyz test -----")                 # PASS
     a = [1, 1, 1]
@@ -178,13 +230,13 @@ def MeshSceneTest():
     print(MeshScene.get_delta_xyz(a, c))
 
     print("----- Get mesh value test -----")                # PASS
-    print(LocalMeshSceneObj.get_mesh(mode="2D"))
-    print(LocalMeshSceneObj.get_mesh(mode="3D"))
+    # print(LocalMeshSceneObj.get_mesh(mode="2D"))
+    # print(LocalMeshSceneObj.get_mesh(mode="3D"))
 
-    print("----- Get the index of center test -----")       # PASS
-    print(LocalMeshSceneObj.get_center_index())             # 2D test
+    print("----- Get the index of origin test -----")       # PASS
+    print(LocalMeshSceneObj.get_origin_index())             # 2D test
     LocalMeshSceneObj.get_meshgrid(mode="3D")               # 3D test
-    print(LocalMeshSceneObj.get_center_index(mode="3D"))
+    print(LocalMeshSceneObj.get_origin_index(mode="3D"))
 
 
 if __name__ == "__main__":

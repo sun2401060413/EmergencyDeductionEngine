@@ -16,7 +16,7 @@ class WeatherEnv:
         self._brightness = EnvBase()
         self._temperature = EnvBase()
         self._wind_speed = EnvBase()
-        self._wind_direction = EnvBase()
+        self._wind_direction = EnvBase()        # Wind direction 插值的问题需要单独处理
         self._rainfall = EnvBase()
 
         # simulatable flag
