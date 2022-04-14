@@ -912,7 +912,7 @@ def EvolutionTest():
                                      max_value=100,
                                      total_sum=total_sum,
                                      area=[100, 100, 100],
-                                     stride=3
+                                     stride=2
                                      )
     # Define a custom evolution function
     EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
