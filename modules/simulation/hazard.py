@@ -1049,7 +1049,7 @@ def EvolutionTest():
     # EvolutionsTestCase_04()
     # EvolutionsTestCase_05()
     # EvolutionsTestCase_06()
-    EvolutionsTestCase_07()
+    # EvolutionsTestCase_07()
 
     print("----- Mesh points test: space evolution functions -----")
     # =============== init data ===============
@@ -1077,41 +1077,11 @@ def EvolutionTest():
                                      stride=2
                                      )
 
-    EvolutionBaseObj_5 = EvolutionBase(id="02",
-                                     name="EvolutionTest01",
-                                     class_name="Hazardbase",
-                                     init_value=init_value,
-                                     init_grad=init_grad,
-                                     init_dgrad=init_dgrad,
-                                     init_spread=init_spread,
-                                     init_dspread=init_dspread,
-                                     min_value=0,
-                                     max_value=100,
-                                     total_sum=total_sum,
-                                     area=[100, 100, 100],
-                                     stride=3
-                                     )
-    EvolutionBaseObj_10 = EvolutionBase(id="02",
-                                     name="EvolutionTest01",
-                                     class_name="Hazardbase",
-                                     init_value=init_value,
-                                     init_grad=init_grad,
-                                     init_dgrad=init_dgrad,
-                                     init_spread=init_spread,
-                                     init_dspread=init_dspread,
-                                     min_value=0,
-                                     max_value=100,
-                                     total_sum=total_sum,
-                                     area=[100, 100, 100],
-                                     stride=5
-                                     )
+
     # Define a custom evolution function
     EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
     EvolutionBaseObj.set_mode(mode="mesh")
-    EvolutionBaseObj_5.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
-    EvolutionBaseObj_5.set_mode(mode="mesh")
-    EvolutionBaseObj_10.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
-    EvolutionBaseObj_10.set_mode(mode="mesh")
+
 
     def update_callback(Obj: EvolutionBase):
         """A test for update callback """
@@ -1121,8 +1091,7 @@ def EvolutionTest():
         pass
 
     EvolutionBaseObj.update_callback = update_callback
-    EvolutionBaseObj_5.update_callback = update_callback
-    EvolutionBaseObj_10.update_callback = update_callback
+
 
     def Ev_func1(args):
         return args[0] / 100
@@ -1131,8 +1100,7 @@ def EvolutionTest():
         return args[0] / 50
 
     EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
-    EvolutionBaseObj_5.time_evolution_function.add_functions(Ev_func1)
-    EvolutionBaseObj_10.time_evolution_function.add_functions(Ev_func1)
+
 
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
@@ -1153,41 +1121,7 @@ def EvolutionTest():
         cb.set_label('热功率 单位(MW)')
         plt.title('热功率空间分布图')
         return im
-    def Evolution_plot_v2(retval: np.ndarray, retval_5: np.ndarray, retval_10:np.ndarray, step):
 
-        plt.subplot(1, 3, 1)
-        plt.text(0, -20, "step={}".format(step))
-        meshval = retval.reshape([100, 100])
-        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
-        plt.xticks(np.arange(0, 100, 10))  # fixed
-        plt.yticks(np.arange(0, 100, 10))  # fixed
-        cb.set_label('热功率 单位(MW)')
-        plt.title('热功率空间分布图:stride=2')
-        plt.subplot(1, 3, 2)
-        meshval_5 = retval_5.reshape([100, 100])
-        im = plt.imshow(meshval_5, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
-        plt.xticks(np.arange(0, 100, 10))  # fixed
-        plt.yticks(np.arange(0, 100, 10))  # fixed
-        cb.set_label('热功率 单位(MW)')
-        plt.title('热功率空间分布图:stride=3')
-        plt.subplot(1, 3, 3)
-        meshval_10 = retval_10.reshape([100, 100])
-        im = plt.imshow(meshval_10, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
-        plt.xticks(np.arange(0, 100, 10))  # fixed
-        plt.yticks(np.arange(0, 100, 10))  # fixed
-        cb.set_label('热功率 单位(MW)')
-        plt.title('热功率空间分布图:stride=5')
-        plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        return im
 
     t = np.array(list(range(0, 100)))
 
@@ -1196,12 +1130,10 @@ def EvolutionTest():
 
     def update_point(step):
         retval = EvolutionBaseObj.update()
-        retval_5 = EvolutionBaseObj_5.update()
-        retval_10 = EvolutionBaseObj_10.update()
         # retval = space_evolution(EvolutionBaseObj.get_value())
         # EvolutionBaseObj.set_value(value=retval)
         # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
-        return Evolution_plot_v2(retval, retval_5, retval_10, step)
+        return Evolution_plot(retval)
 
     ani = FuncAnimation(fig2, update_point, frames=t,
                         init_func=init, interval=300, repeat=False)

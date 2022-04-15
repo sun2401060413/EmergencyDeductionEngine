@@ -22,7 +22,8 @@ class MeshScene(Element):
                  zrange=None,
                  xcount=10,
                  ycount=10,
-                 zcount=1):
+                 zcount=1,
+                 mask=None):
         """
         :param xrange: start and end position on x-axis
         :param yrange: strat and end position on y-axis
@@ -53,6 +54,8 @@ class MeshScene(Element):
 
         self.localpos = None  # The origin of relative coordinate in real mesh coordinate
         self.localmesh = None  # relative coordinate of center
+
+        self.mask = mask    # As same size as the MeshScene
 
     def set_params(self, xrange=None, yrange=None, zrange=None, xcount=None, ycount=None, zcount=None):
         self.xrange = xrange
@@ -104,6 +107,12 @@ class MeshScene(Element):
         return (np.array(target_pos) - np.array(ref_pos)).tolist()
         pass
 
+    def set_mask(self, mask=None):
+        self.mask = mask
+
+    def get_mask(self):
+        return self.mask
+
 
 class LocalMeshScene(MeshScene):
     """Local mesh"""
@@ -143,8 +152,6 @@ class LocalMeshScene(MeshScene):
             zcount=int(self.height / self.h_stride),
         )
 
-        self.mask = None    # As same size as the AreaScene
-
         self.get_meshgrid(mode="2D")
         self.get_origin_index(mode="2D")
 
@@ -171,6 +178,8 @@ class LocalMeshScene(MeshScene):
         else:
             self.ct_z = np.unique(np.where(self.pts_z == 0)[2])[0]
             return self.ct_x, self.ct_y, self.ct_z
+
+
 
 def MeshSceneTest():
     """
@@ -237,6 +246,32 @@ def MeshSceneTest():
     print(LocalMeshSceneObj.get_origin_index())             # 2D test
     LocalMeshSceneObj.get_meshgrid(mode="3D")               # 3D test
     print(LocalMeshSceneObj.get_origin_index(mode="3D"))
+
+    print("----- Mesh visualization -----")
+    LocalMeshSceneObj.reset_origin(mode="2D", l_start=-5, w_start=-5, h_start=-5)
+    LocalMeshSceneObj.get_meshgrid(mode="2D")               # 3D test
+    x, y = LocalMeshSceneObj.pts_x, LocalMeshSceneObj.pts_y
+    sigma = 2
+    z = np.round(np.array(1 / (2 * np.pi * (sigma ** 2)) * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))*1000, 3)
+    LocalMeshSceneObj.mesh = z
+    print(LocalMeshSceneObj.mesh.size)
+    import matplotlib.pyplot as plt
+    font = {'family': 'SimHei',
+            'weight': 'bold',
+            'size': '12'}
+    plt.rc('font', **font)  # 设置字体的更多属性
+    plt.rc('axes', unicode_minus=False)  # 解决坐标轴负数的负号显示问题
+    plt.figure(num=1)
+    plt.imshow(z, interpolation=None, cmap=plt.cm.GnBu, aspect='auto', vmin=5, vmax=25)
+    plt.xlabel('经度方向坐标x')
+    plt.ylabel('纬度方向坐标y')
+    cb = plt.colorbar()
+    plt.xticks(np.arange(0, 10, 1))  # fixed
+    plt.yticks(np.arange(0, 10, 1))  # fixed
+    cb.set_label('强度')
+    plt.title('变量空间分布图')
+    plt.show()
+
 
 
 if __name__ == "__main__":

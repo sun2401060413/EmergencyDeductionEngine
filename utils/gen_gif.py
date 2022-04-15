@@ -20,7 +20,7 @@ def gen_gif(path, output, duration = 0.3):
 #
 def main():
     path = r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs"
-    output = 'space_evolution.gif'
+    output = 'space_evolution_with_different_strides.gif'
     gen_gif(path, output)
 
 
