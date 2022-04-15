@@ -6,7 +6,7 @@ This is an Emergency Deduction Engine
 ![wave evolution](docs/figs/wave_test.gif) 
 **Figure 2** Evolution of wave conditions (Wave height, wave direction, tide height, wave speed, wave period)
 
-[wave evolution](docs/figs/wave_test.html) 
+[wave evolution](https://sun2401060413.github.io/notes/2019_summer/wave_test) 
 ![hazard_evolution_in_time](docs/figs/hazard_evoultion_in_st.gif) 
 **Figure 3** Evolution of base hazard in temporal
 ![hazard_evolution_in_space](docs/figs/space_evolution_with_different_strides.gif) 
