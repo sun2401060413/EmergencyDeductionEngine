@@ -1,6 +1,6 @@
 from lib.interface import interface
-from modules.simulation.simulator import simulator
+from modules.simulation.simulator import Simulator
 if(__name__ == "__main__"):
     print("Launching the Emergency Deduction System...")
-    simulator()
+    Simulator()
     interface("localhost", 55576)

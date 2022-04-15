@@ -1,5 +1,5 @@
-KEY_CLIENT_ID = "ClientID"
-KEY_OBJECT_ID = "ObjectID"
+KEY_CLIENT_ID = "clientId"
+KEY_OBJECT_ID = "objectId"
 KEY_ALGORITHM = "algorithm"
 KEY_RESULT = "Value"
 KEY_BURNING_MATERIAL = "BurningMaterial"
@@ -9,7 +9,7 @@ KEY_HISTORY_FIGHTING_TIME_LIST = "StartStopFightTime"
 KEY_HISTORY_FIGHTING_MATERIAL_LIST = "FightingMaterial"
 KEY_START_TIME = "StartTime"
 KEY_STOP_TIME = "StopTime"
-KEY_STEP_TIME = "Step"
+KEY_STEP_TIME = "step"
 KEY_DISTANCE = "Distance"
 KEY_LOCATION = "Location"
 KEY_BURNING_CAUSE = "BurningCause"
@@ -34,6 +34,18 @@ ALGORITHM_LIST_PEOPLE_STATUS = "6"
 ALGORITHM_LIST_VEHICLE_STATUS = "7"
 ALGORITHM_LIST_EVN_TEMP = "1"
 ALGORITHM_LIST_VISIBILITY = "3"
+
+#add by 4/14 16:47
+KEY_PARAMS = "params"
+KEY_NAME = "name"
+NAME_LIST_BRIGHTNESS = "brightness"
+POSITION_LIST = "position"
+RADIUS_LIST = "radius"
+CENTER_VALUE_LIST = "center_value"
+OUTER_VALUE_LIST = "outer_value"
+#add by 4/15 14:20
+KEY_MODE = "mode"
+
 
 # BURNINGMATERIAL_DICT = {
 #     "timber": 0.1,

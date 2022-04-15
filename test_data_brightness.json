@@ -3,13 +3,14 @@
     "params": [
         {
             "objectId": "1",
+            "name": "brightness",
             "algorithm": "4",
-            "initBrightness": 100,
-            "weatherStatus": "1",
-            "location": "1",
-            "startTime": 0,
-            "stopTime": 1,
-            "step": 1
+            "position": [100,100,0],
+            "radius": "1000",
+            "center_value": "1200",
+            "outer_value": "1100",
+            "step": 20,
+            "mode": "point"
         },
         {
             "objectId": "2",
