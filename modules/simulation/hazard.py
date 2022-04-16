@@ -370,7 +370,8 @@ def call_function(args, f):
 
 def default_space_evolution_func(value, center_x_idx=0, center_y_idx=0, center_z_idx=0, mode="2D", stride=1):
     stride_value = value.copy()
-    stride_value[center_y_idx-stride: center_y_idx+stride+1, center_x_idx-stride: center_x_idx+stride+1] = stride_value[center_x_idx, center_y_idx]
+    center_value = np.max(stride_value[center_x_idx-stride:center_x_idx+stride, center_y_idx-stride:center_y_idx+stride])
+    stride_value[center_y_idx-stride: center_y_idx+stride+1, center_x_idx-stride: center_x_idx+stride+1] = center_value
     h_offset, v_offset, hv_offset = stride_value.copy(), stride_value.copy(), stride_value.copy()
     if mode is "2D":
         h_offset[:, 0:center_x_idx-stride] = h_offset[:, stride:center_x_idx]           # x=4, 0:2, 2:4, [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -872,6 +873,166 @@ def EvolutionsTestCase_06():
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution.gif")
 
     plt.show()
+
+def EvolutionsTestCase_07():
+    print("----- Mesh points test: space evolution functions -----")
+    # =============== init data ===============
+    init_value = np.zeros([100, 100])
+    init_value[49:51, 49:51] = 50
+    # print(init_value)
+    init_grad = np.ones([100, 100]) * 0.05
+    init_dgrad = np.ones([100, 100]) * -0.01
+    init_spread = np.ones([100, 100]) * -0.01  # How to use the param
+    init_dspread = np.ones([100, 100]) * -0.01  # How to use the param
+    total_sum = np.ones([100, 100]) * 2000
+
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=init_value,
+                                     init_grad=init_grad,
+                                     init_dgrad=init_dgrad,
+                                     init_spread=init_spread,
+                                     init_dspread=init_dspread,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=total_sum,
+                                     area=[100, 100, 100],
+                                     stride=2
+                                     )
+
+    EvolutionBaseObj_5 = EvolutionBase(id="02",
+                                       name="EvolutionTest01",
+                                       class_name="Hazardbase",
+                                       init_value=init_value,
+                                       init_grad=init_grad,
+                                       init_dgrad=init_dgrad,
+                                       init_spread=init_spread,
+                                       init_dspread=init_dspread,
+                                       min_value=0,
+                                       max_value=100,
+                                       total_sum=total_sum,
+                                       area=[100, 100, 100],
+                                       stride=3
+                                       )
+    EvolutionBaseObj_10 = EvolutionBase(id="02",
+                                        name="EvolutionTest01",
+                                        class_name="Hazardbase",
+                                        init_value=init_value,
+                                        init_grad=init_grad,
+                                        init_dgrad=init_dgrad,
+                                        init_spread=init_spread,
+                                        init_dspread=init_dspread,
+                                        min_value=0,
+                                        max_value=100,
+                                        total_sum=total_sum,
+                                        area=[100, 100, 100],
+                                        stride=5
+                                        )
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
+    EvolutionBaseObj.set_mode(mode="mesh")
+    EvolutionBaseObj_5.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
+    EvolutionBaseObj_5.set_mode(mode="mesh")
+    EvolutionBaseObj_10.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
+    EvolutionBaseObj_10.set_mode(mode="mesh")
+
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum) / 10, Obj.grad]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+    EvolutionBaseObj_5.update_callback = update_callback
+    EvolutionBaseObj_10.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[0] / 100
+
+    def Ev_func2(args):
+        return args[0] / 50
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+    EvolutionBaseObj_5.time_evolution_function.add_functions(Ev_func1)
+    EvolutionBaseObj_10.time_evolution_function.add_functions(Ev_func1)
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    fig2 = plt.figure(num=2, figsize=(128, 108))
+    x, y = [], []
+
+    def Evolution_plot(retval: np.ndarray):
+        plt.subplot(1, 1, 1)
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图')
+        return im
+
+    def Evolution_plot_v2(retval: np.ndarray, retval_5: np.ndarray, retval_10: np.ndarray, step):
+        plt.subplot(1, 3, 1)
+        plt.text(0, -20, "step={}".format(step))
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图:stride=2')
+        plt.subplot(1, 3, 2)
+        meshval_5 = retval_5.reshape([100, 100])
+        im = plt.imshow(meshval_5, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图:stride=3')
+        plt.subplot(1, 3, 3)
+        meshval_10 = retval_10.reshape([100, 100])
+        im = plt.imshow(meshval_10, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar(im, fraction=0.046, pad=0.04)
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图:stride=5')
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        return im
+
+    t = np.array(list(range(0, 100)))
+
+    def init():
+        pass
+
+    def update_point(step):
+        retval = EvolutionBaseObj.update()
+        retval_5 = EvolutionBaseObj_5.update()
+        retval_10 = EvolutionBaseObj_10.update()
+        # retval = space_evolution(EvolutionBaseObj.get_value())
+        # EvolutionBaseObj.set_value(value=retval)
+        # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
+        return Evolution_plot_v2(retval, retval_5, retval_10, step)
+
+    ani = FuncAnimation(fig2, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
+    plt.show()
+
 # </editor-fold>
 
 
@@ -888,6 +1049,7 @@ def EvolutionTest():
     # EvolutionsTestCase_04()
     # EvolutionsTestCase_05()
     # EvolutionsTestCase_06()
+    # EvolutionsTestCase_07()
 
     print("----- Mesh points test: space evolution functions -----")
     # =============== init data ===============
@@ -914,9 +1076,12 @@ def EvolutionTest():
                                      area=[100, 100, 100],
                                      stride=2
                                      )
+
+
     # Define a custom evolution function
     EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
     EvolutionBaseObj.set_mode(mode="mesh")
+
 
     def update_callback(Obj: EvolutionBase):
         """A test for update callback """
@@ -927,6 +1092,7 @@ def EvolutionTest():
 
     EvolutionBaseObj.update_callback = update_callback
 
+
     def Ev_func1(args):
         return args[0] / 100
 
@@ -934,6 +1100,7 @@ def EvolutionTest():
         return args[0] / 50
 
     EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
 
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
@@ -955,6 +1122,7 @@ def EvolutionTest():
         plt.title('热功率空间分布图')
         return im
 
+
     t = np.array(list(range(0, 100)))
 
     def init():
@@ -970,8 +1138,7 @@ def EvolutionTest():
     ani = FuncAnimation(fig2, update_point, frames=t,
                         init_func=init, interval=300, repeat=False)
 
-    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution.gif")
-
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
     plt.show()
 
 if __name__=="__main__":

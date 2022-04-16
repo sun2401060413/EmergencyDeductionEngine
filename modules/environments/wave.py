@@ -403,13 +403,13 @@ def WaveEnvTest():
                         repeat=False
                         ) #绘制动图
     #ani.save(r"E:\fproject\docs\figs\wave_test.gif", writer='pillow') #保存为gif文件
-    ffmpegpath = os.path.abspath(r"D:\google_download\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe")
-    matplotlib.rcParams["animation.ffmpeg_path"] = ffmpegpath
-    writer = animation.FFMpegWriter()
+    #ffmpegpath = os.path.abspath(r"D:\google_download\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe")
+    #matplotlib.rcParams["animation.ffmpeg_path"] = ffmpegpath
+    #writer = animation.FFMpegWriter()
     # ani.save(r"E:\fproject\docs\figs\wave_test.mp4", writer=writer) #保存为mp4文件
 
 
-    with open ("wave_test.html", "w") as f:
+    with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\wave_test.html", "w") as f:
         print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
 
     plt.show()
