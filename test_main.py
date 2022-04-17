@@ -34,9 +34,10 @@ def do_test(url):
     with open(fname, 'r', encoding='utf-8') as f:
         param = json.load(f)
         jdata = predict(param, url)
-        data = json.loads(jdata)
-        jsonString = json.dumps(data, ensure_ascii=False, indent=4)
-        print(jsonString)
+        print(jdata)
+        #data = json.loads(jdata)
+        #jsonString = json.dumps(data, ensure_ascii=False, indent=4)
+        #print(jsonString)
         print('-'*50)
 
 

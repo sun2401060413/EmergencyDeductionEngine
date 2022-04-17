@@ -1,27 +1,59 @@
 from lib.datatype import *
+from modules.simulation.mesh import MeshScene
+from modules.environments.weather import WeatherEnv
 class CoreFunc:
     def __init__(self):
         pass
 
-    def __format_ret(self, cid, oid, algo, data):
+    def __format_ret(self, cid, oid, name, algo, data):
         retval = dict()
         retval[KEY_CLIENT_ID] = cid
         retval[KEY_OBJECT_ID] = oid
+        retval[KEY_NAME] = name
         retval[KEY_ALGORITHM] = algo
         retval[KEY_RESULT] = data
         return retval
 
     def core_func(self, format_data: dict):
         print("core_func")
+        WeatherEnvObj = WeatherEnv()
+        Mesh = MeshScene(xrange=[25, 125], yrange=[25, 125], xcount=100, ycount=100)
+        pt_pos = Mesh.get_meshgrid(mode="2D")
         client_id = format_data.get(KEY_CLIENT_ID)
-        object_id = format_data.get(KEY_OBJECT_ID)
-        algorithm = format_data.get(KEY_ALGORITHM)
+        params = format_data.get(KEY_PARAMS)
+        params_1 = params[0]
+        object_id = params_1.get(KEY_OBJECT_ID)
+        algorithm = params_1.get(KEY_ALGORITHM)
+        name = params_1.get(KEY_NAME)
+
         # start_time = int(format_data.get(KEY_START_TIME))
         # stop_time = int(format_data.get(KEY_STOP_TIME))
         # step_time = int(format_data.get(KEY_STEP_TIME))
-        value = ["sz test"]
-        if(algorithm == ALGORITHM_LIST_FIRE):
-            pass
+        #value = ["sz test"]
+        if(name == NAME_LIST_BRIGHTNESS):
+            position_value = params_1.get(POSITION_LIST)
+            step_time = params_1.get(KEY_STEP_TIME)
+            mode_value = params_1.get(KEY_MODE)
+            WeatherEnvObj.set_params(params_dict=params_1)
+            params_dict_seq = {
+                "brightness": {
+                    "id": "env_02",
+                    "name": "test_02",
+                    "pos": [[30, 30], [50, 50], [70, 70], [90, 90], [110, 110]],
+                    "radius": [100, 120, 150, 120, 100],
+                    "center_value": [1000, 1050, 1100, 1150, 1200],
+                    "outer_value": [900, 950, 1000, 1050, 1100],
+                    "time_value": [0, 10, 20, 30, 40],
+                }
+            }
+            WeatherEnvObj.set_params_sequence(params_dict=params_dict_seq)
+            if (mode_value == "point"):
+                value = WeatherEnvObj.get_value_sequence(pt_pos=position_value,cur_t=step_time, mode="point")
+            else:
+                value = WeatherEnvObj.get_value_sequence(pt_pos=pt_pos,cur_t=step_time, mode="Mesh")
+            print(value)
+
+
             # burning_material_key = format_data.get(KEY_BURNING_MATERIAL)
             # burning_mass_value = format_data.get(KEY_BURNING_MASS)
             # history_fighting_time_list = format_data.get(
@@ -92,7 +124,7 @@ class CoreFunc:
 
         else:
             pass
-        retval = self.__format_ret(client_id,object_id,algorithm,value)
+        retval = self.__format_ret(client_id,object_id,name,algorithm,value)
         return retval
 
     def test_func(self, format_data: dict):

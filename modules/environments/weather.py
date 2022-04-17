@@ -383,7 +383,8 @@ def WeatherEnvTest():
     import math
 
 
-    fig2 = plt.figure(num=2, figsize=(128, 108))
+    #fig2 = plt.figure(num=2, figsize=(128, 108))
+    fig2 = plt.figure(num=2, figsize=(15, 8))
 
     def weather_condition_plot(retval):
         """
@@ -405,8 +406,11 @@ def WeatherEnvTest():
         plt.ylabel('纬度方向坐标y')
         cb = plt.colorbar()
         plt.grid()
-        plt.xticks(np.arange(25, 125, 25))  # fixed
-        plt.yticks(np.arange(25, 125, 25))  # fixed
+        #plt.xticks(np.arange(25, 125, 25))  # fixed
+        #plt.yticks(np.arange(25, 125, 25))  # fixed
+        plt.xticks(np.arange(25, 150, 25))  # fixed
+        plt.yticks(np.arange(50, 150, 25))  # fixed
+        plt.gca().invert_yaxis()
         cb.set_label('能见度 单位(m)')
         plt.title('能见度空间分布图')
 
@@ -418,8 +422,11 @@ def WeatherEnvTest():
         plt.ylabel('纬度方向坐标y')
         cb = plt.colorbar()
         plt.grid()
-        plt.xticks(np.arange(25, 125, 25))  # fixed
-        plt.yticks(np.arange(25, 125, 25))  # fixed
+        # plt.xticks(np.arange(25, 125, 25))  # fixed
+        # plt.yticks(np.arange(25, 125, 25))  # fixed
+        plt.xticks(np.arange(25, 150, 25))  # fixed
+        plt.yticks(np.arange(50, 150, 25))  # fixed
+        plt.gca().invert_yaxis()
         cb.set_label('亮度 单位(lux)')
         plt.title('亮度空间分布图')
 
@@ -431,8 +438,11 @@ def WeatherEnvTest():
         plt.ylabel('纬度方向坐标y')
         cb = plt.colorbar()
         plt.grid()
-        plt.xticks(np.arange(25, 125, 25))  # fixed
-        plt.yticks(np.arange(25, 125, 25))  # fixed
+        # plt.xticks(np.arange(25, 125, 25))  # fixed
+        # plt.yticks(np.arange(25, 125, 25))  # fixed
+        plt.xticks(np.arange(25, 150, 25))  # fixed
+        plt.yticks(np.arange(50, 150, 25))  # fixed
+        plt.gca().invert_yaxis()
         cb.set_label('温度 单位(℃)')
         plt.title('温度空间分布图')
 
@@ -444,8 +454,11 @@ def WeatherEnvTest():
         plt.ylabel('纬度方向坐标y')
         cb = plt.colorbar()
         plt.grid()
-        plt.xticks(np.arange(25, 125, 25))  # fixed
-        plt.yticks(np.arange(25, 125, 25))  # fixed
+        # plt.xticks(np.arange(25, 125, 25))  # fixed
+        # plt.yticks(np.arange(25, 125, 25))  # fixed
+        plt.xticks(np.arange(25, 150, 25))  # fixed
+        plt.yticks(np.arange(50, 150, 25))  # fixed
+        plt.gca().invert_yaxis()
         cb.set_label('风速 单位(m/s)')
         plt.title('风速空间分布图')
 
@@ -475,8 +488,11 @@ def WeatherEnvTest():
         plt.ylabel('纬度方向坐标y')
         cb = plt.colorbar()
         plt.grid()
-        plt.xticks(np.arange(25, 125, 25))  # fixed
-        plt.yticks(np.arange(25, 125, 25))  # fixed
+        # plt.xticks(np.arange(25, 125, 25))  # fixed
+        # plt.yticks(np.arange(25, 125, 25))  # fixed
+        plt.xticks(np.arange(25, 150, 25))  # fixed
+        plt.yticks(np.arange(50, 150, 25))  # fixed
+        plt.gca().invert_yaxis()
         cb.set_label('降水强度 单位(mm/24h)')
         plt.title('降水量空间分布图')
         plt.subplots_adjust(wspace=0.4, hspace=0.4)
@@ -498,7 +514,7 @@ def WeatherEnvTest():
 
     def update(step):
         retval = WeatherEnvObj.get_value_sequence(pt_pos=pt_pos, cur_t=step, mode="mesh")
-        fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}".format(step))
+        #fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}".format(step))
         return weather_condition_plot(retval)
 
     ani = FuncAnimation(fig2,
@@ -508,6 +524,8 @@ def WeatherEnvTest():
                         interval=10,
                         repeat=False)
     # ani.save(r"D:\Project\EmergencyDeductionS\docs\figs\weather_base.gif")
+    with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\weather_test.html", "w") as f:
+        print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
     plt.show()
     print("===== Test accomplished! =====")
 
