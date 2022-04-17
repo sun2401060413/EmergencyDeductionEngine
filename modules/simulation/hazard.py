@@ -67,10 +67,13 @@ class HazardBase(Element):
 
     def set_simulate_time(self, begin_time=0, end_time=None):
         self._begin_time, self._end_time = begin_time, end_time
+
     def get_simulate_time(self):
         return self._begin_time, self._end_time
+
     def set_step(self, step):
         self._step = step
+
     def get_step(self):
         return self._step
 

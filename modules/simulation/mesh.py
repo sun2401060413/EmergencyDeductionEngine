@@ -252,8 +252,10 @@ def MeshSceneTest():
     LocalMeshSceneObj.get_meshgrid(mode="2D")               # 3D test
     x, y = LocalMeshSceneObj.pts_x, LocalMeshSceneObj.pts_y
     sigma = 2
+    thresh = 5
     z = np.round(np.array(1 / (2 * np.pi * (sigma ** 2)) * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))*1000, 3)
-    LocalMeshSceneObj.mesh = z
+    LocalMeshSceneObj.mesh = 1 - (z > thresh)*1
+
     print(LocalMeshSceneObj.mesh.size)
     import matplotlib.pyplot as plt
     font = {'family': 'SimHei',
@@ -262,7 +264,8 @@ def MeshSceneTest():
     plt.rc('font', **font)  # 设置字体的更多属性
     plt.rc('axes', unicode_minus=False)  # 解决坐标轴负数的负号显示问题
     plt.figure(num=1)
-    plt.imshow(z, interpolation=None, cmap=plt.cm.GnBu, aspect='auto', vmin=5, vmax=25)
+    # plt.imshow(z, interpolation=None, cmap=plt.cm.GnBu, aspect='auto', vmin=5, vmax=25)
+    plt.imshow(LocalMeshSceneObj.mesh, interpolation=None, cmap=plt.cm.GnBu, aspect='auto', vmin=0, vmax=5)
     plt.xlabel('经度方向坐标x')
     plt.ylabel('纬度方向坐标y')
     cb = plt.colorbar()
