@@ -165,6 +165,9 @@ class LocalMeshScene(MeshScene):
         self.yrange = [self.l_start, self.l_start + self.length]
         self.zrange = [self.h_start, self.h_start + self.height]
 
+        self.get_meshgrid(mode=mode)
+        return self.get_origin_index(mode=mode)
+
     def get_origin_index(self, mode="2D"):
         """Get the index of the center in matrix"""
         if self.mesh is None:
@@ -178,8 +181,6 @@ class LocalMeshScene(MeshScene):
         else:
             self.ct_z = np.unique(np.where(self.pts_z == 0)[2])[0]
             return self.ct_x, self.ct_y, self.ct_z
-
-
 
 def MeshSceneTest():
     """
@@ -248,7 +249,7 @@ def MeshSceneTest():
     print(LocalMeshSceneObj.get_origin_index(mode="3D"))
 
     print("----- Mesh visualization -----")
-    LocalMeshSceneObj.reset_origin(mode="2D", l_start=-5, w_start=-5, h_start=-5)
+    LocalMeshSceneObj.reset_origin(mode="2D", l_start=-6, w_start=-1, h_start=-1)
     LocalMeshSceneObj.get_meshgrid(mode="2D")               # 3D test
     x, y = LocalMeshSceneObj.pts_x, LocalMeshSceneObj.pts_y
     sigma = 2

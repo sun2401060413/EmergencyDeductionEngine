@@ -11,3 +11,5 @@ This is an Emergency Deduction Engine
 **Figure 3** Evolution of base hazard in temporal
 ![hazard_evolution_in_space](docs/figs/space_evolution_with_different_strides.gif) 
 **Figure 4** Evolution of base hazard in spatial
+![hazard_evolution_in_space_and_time](docs/figs/time_space_evolution_devolution_three_pts.gif) 
+**Figure 5** Evolution of base hazard in spatial and temporal
