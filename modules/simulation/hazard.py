@@ -175,10 +175,10 @@ class EvolutionBase(Element):
                  min_value=0,
                  max_value=100,
                  total_sum=None,
-                 area=[1, 1, 1],        # The length, width, height of effecting area (localmesh)
                  pos=[0, 0, 0],
+                 area=[1, 1, 1],        # The length, width, height of effecting area (localmesh)
+                 stride=[1, 1, 1],      # The mesh stride in length, width, and height axis
                  step=1,
-                 stride=1,
                  end_time=None):
         super().__init__(id, name, class_name)
         # Init
@@ -193,14 +193,16 @@ class EvolutionBase(Element):
         self.current_sum = 0
         self.pos = pos
 
-        self.area = area
-        self.localmesh = LocalMeshScene(area[0], area[1], area[2], stride, stride, stride)
+        self.area = area                    # area: length, width, height
+        self.evolution_localmesh = LocalMeshScene(area[0], area[1], area[2], stride[0], stride[1], stride[2])
+        self.devolution_localmesh = LocalMeshScene(area[0], area[1], area[2], stride[0], stride[1], stride[2])
         self._mode = "point"         # mode: "point" or "mesh"
 
-        # Current value
+        # Current values
         self._value = self._init_value      # single value: value of the center of localmesh
         self.grad = self._init_grad
         self.dgrad = self._init_dgrad
+        self._mask = np.zeros_like(self._value)
         self.spread = self._init_spread
         self.dspread = self._init_dspread
         self._pt_pos = [0, 0, 0]
@@ -253,24 +255,29 @@ class EvolutionBase(Element):
     def _delta_space_evolution(self):
         # mode: point or mesh
         if self._mode is "point":
-            if len(self.space_evolution_function.functions_list) > 0:
-                retval = 0
-                for func in self.space_evolution_function.functions_list:
-                    retval = retval + call_function(self.space_evolution_function.params, func)*self.stride
-                return retval
-            else:
-                return self.spread * self.stride    # HOW?
+            # # require the distance between target and center
+            # if len(self.space_evolution_function.functions_list) > 0:
+            #     retval = 0
+            #     for func in self.space_evolution_function.functions_list:
+            #         retval = retval + call_function(self.space_evolution_function.params, func)*self.stride
+            #     return retval
+            # else:
+            #     return self.spread * self.stride    # HOW?
+            pass
         else:
             if len(self.space_evolution_function.functions_list) > 0:
                 retval = 0
                 for func in self.space_evolution_function.functions_list:
-                    retval = retval + call_function(self.space_evolution_function.params, func)*self.stride
+                    retval = retval + call_function(self.space_evolution_function.params, func)
                 return retval
             else:
-                return default_space_evolution_func(self._value,
-                                                    center_x_idx=self.localmesh.ct_x*self.stride,
-                                                    center_y_idx=self.localmesh.ct_y*self.stride,
-                                                    stride=self.stride)
+                return default_space_evolution_func(self.evolution_localmesh.mask,
+                                                    # center_x_idx=self.evolution_localmesh.ct_x*self.stride[0],
+                                                    center_x_idx=self.evolution_localmesh.ct_x*self.stride[1],
+                                                    # center_y_idx=self.evolution_localmesh.ct_y*self.stride[1],
+                                                    center_y_idx=self.evolution_localmesh.ct_y*self.stride[0],
+                                                    # stride_x=int(self.spread[1]/self.stride[1]), stride_y=int(self.spread[0]/self.stride[0]))
+                                                    stride_x=self.spread[1], stride_y=self.spread[0])
 
     def _delta_time_devolution(self):
         # mode: point or mesh
@@ -289,7 +296,7 @@ class EvolutionBase(Element):
                     retval = retval + call_function(self.time_evolution_function.params, func)*self.step
                 return retval
             else:
-                return self.grad * self.step
+                return self.dgrad * self.step
 
     def _delta_space_devolution(self):
         # mode: point or mesh
@@ -308,7 +315,10 @@ class EvolutionBase(Element):
                     retval = retval + call_function(self.space_devolution_function.params, func)*self.stride
                 return retval
             else:
-                return self.dspread * self.stride
+                return default_space_evolution_func(self.devolution_localmesh.mask,
+                                                    center_x_idx=self.devolution_localmesh.ct_x*self.stride[0],
+                                                    center_y_idx=self.devolution_localmesh.ct_y*self.stride[1],
+                                                    stride_x=self.dspread[1], stride_y=self.dspread[0])
 
     def update(self):
         # TODO: distribution in space
@@ -323,8 +333,9 @@ class EvolutionBase(Element):
         #         call_function(self, self.update_callback)
         #     return self._value
 
-        # self._value = np.round(np.clip(self._value + self._delta_time_evolution() + self._delta_time_devolution(), a_min=self.min_value, a_max=self.max_value), 3)
-        self._value = np.round(np.clip(self._delta_space_evolution(), a_min=self.min_value, a_max=self.max_value), 3)
+        self._value = np.round(np.clip(self._value + np.multiply(self._delta_time_evolution(), self._mask) + np.multiply(self._delta_time_devolution(), self._mask), a_min=self.min_value, a_max=self.max_value), 3)
+        self.evolution_localmesh.mask, self.devolution_localmesh.mask = self._delta_space_evolution(), self._delta_space_devolution()
+        self._mask = np.clip(self.evolution_localmesh.mask - self.devolution_localmesh.mask, a_min=0, a_max=1)
         if self.update_callback is not None:
             call_function(self, self.update_callback)
         return self._value
@@ -348,6 +359,11 @@ class EvolutionBase(Element):
         else:
             self._value             # TODO: SAME
 
+    def set_mask(self, mask):
+        self._mask = mask
+
+    def get_mask(self):
+        return self._mask
 
 class FunctionsBase:
     """
@@ -371,29 +387,28 @@ def call_function(args, f):
     """Callback function"""
     return f(args)
 
-def default_space_evolution_func(value, center_x_idx=0, center_y_idx=0, center_z_idx=0, mode="2D", stride=1):
+def default_space_evolution_func(value, center_x_idx=0, center_y_idx=0, center_z_idx=0, mode="2D", stride_x=1, stride_y=1, stride_z=1):
     stride_value = value.copy()
-    center_value = np.max(stride_value[center_x_idx-stride:center_x_idx+stride, center_y_idx-stride:center_y_idx+stride])
-    stride_value[center_y_idx-stride: center_y_idx+stride+1, center_x_idx-stride: center_x_idx+stride+1] = center_value
+    center_value = np.max(stride_value[center_x_idx-stride_x:center_x_idx+stride_x, center_y_idx-stride_y:center_y_idx+stride_y])
+    stride_value[center_y_idx-stride_y: center_y_idx+stride_y+1, center_x_idx-stride_y: center_x_idx+stride_y+1] = center_value
     h_offset, v_offset, hv_offset = stride_value.copy(), stride_value.copy(), stride_value.copy()
     if mode is "2D":
-        h_offset[:, 0:center_x_idx-stride] = h_offset[:, stride:center_x_idx]           # x=4, 0:2, 2:4, [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        h_offset[:, center_x_idx + stride:-1] = h_offset[:, center_x_idx:-1*stride - 1]   # x=4, 6:8, 4:6
+        h_offset[:, 0:center_x_idx-stride_x] = h_offset[:, stride_x:center_x_idx]           # x=4, 0:2, 2:4, [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        h_offset[:, center_x_idx + stride_x:-1] = h_offset[:, center_x_idx:-1*stride_x - 1]   # x=4, 6:8, 4:6
         # print(h_offset)
 
-        v_offset[0:center_y_idx - stride, :] = v_offset[stride: center_y_idx, :]
-        v_offset[center_y_idx + stride:-1, :] = v_offset[center_y_idx:-1*stride - 1, :]
+        v_offset[0:center_y_idx - stride_y, :] = v_offset[stride_y: center_y_idx, :]
+        v_offset[center_y_idx + stride_y:-1, :] = v_offset[center_y_idx:-1*stride_y - 1, :]
         # print(v_offset)
 
-        hv_offset[:, 0:center_x_idx - stride] = hv_offset[:, stride:center_x_idx]
-        hv_offset[:, center_x_idx + stride:-1] = hv_offset[:, center_x_idx:-1*stride - 1]
-        hv_offset[0:center_y_idx - stride, :] = hv_offset[stride: center_y_idx, :]
-        hv_offset[center_y_idx + stride:-1, :] = hv_offset[center_y_idx:-1*stride - 1, :]
+        hv_offset[:, 0:center_x_idx - stride_x] = hv_offset[:, stride_x:center_x_idx]
+        hv_offset[:, center_x_idx + stride_x:-1] = hv_offset[:, center_x_idx:-1*stride_x - 1]
+        hv_offset[0:center_y_idx - stride_y, :] = hv_offset[stride_y: center_y_idx, :]
+        hv_offset[center_y_idx + stride_y:-1, :] = hv_offset[center_y_idx:-1*stride_y - 1, :]
         # print(hv_offset)
 
         evolution_value = 0.25 * h_offset + 0.25 * v_offset + 0.5 * hv_offset
     return evolution_value
-
 
 # ===== TEST CASE =====
 
@@ -1036,33 +1051,16 @@ def EvolutionsTestCase_07():
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
     plt.show()
 
-# </editor-fold>
-
-
-def EvolutionTest():
-    """
-    A test for evolution
-    :return:
-    Assuming that there are several units affecting the hazard.
-    """
-    print("===== EvolutionBase test ======")
-    # EvolutionsTestCase_01()
-    # EvolutionsTestCase_02()
-    # EvolutionsTestCase_03()
-    # EvolutionsTestCase_04()
-    # EvolutionsTestCase_05()
-    # EvolutionsTestCase_06()
-    # EvolutionsTestCase_07()
-
-    print("----- Mesh points test: space evolution functions -----")
+def EvolutionsTestCase_08():
+    print("----- Time and space evolution functions -----")
     # =============== init data ===============
     init_value = np.zeros([100, 100])
     init_value[49:51, 49:51] = 50
     # print(init_value)
     init_grad = np.ones([100, 100]) * 0.05
     init_dgrad = np.ones([100, 100]) * -0.01
-    init_spread = np.ones([100, 100]) * -0.01       # How to use the param
-    init_dspread = np.ones([100, 100]) * -0.01      # How to use the param
+    init_spread = np.ones([100, 100]) * -0.01  # How to use the param
+    init_dspread = np.ones([100, 100]) * -0.01  # How to use the param
     total_sum = np.ones([100, 100]) * 2000
 
     EvolutionBaseObj = EvolutionBase(id="01",
@@ -1080,21 +1078,20 @@ def EvolutionTest():
                                      stride=2
                                      )
 
-
     # Define a custom evolution function
     EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
     EvolutionBaseObj.set_mode(mode="mesh")
-
+    EvolutionBaseObj.localmesh.mask = np.zeros([100, 100])
 
     def update_callback(Obj: EvolutionBase):
         """A test for update callback """
         # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
         Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum) / 10, Obj.grad]
         Obj.current_sum = Obj.current_sum + Obj.get_value()
+        Obj.localmesh.mask = (Obj.get_value() > 0) * 1
         pass
 
     EvolutionBaseObj.update_callback = update_callback
-
 
     def Ev_func1(args):
         return args[0] / 100
@@ -1104,7 +1101,6 @@ def EvolutionTest():
 
     EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
 
-
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
     plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -1113,7 +1109,7 @@ def EvolutionTest():
     x, y = [], []
 
     def Evolution_plot(retval: np.ndarray):
-        plt.subplot(1, 1, 1)
+        plt.subplot(1, 2, 1)
         meshval = retval.reshape([100, 100])
         im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
         plt.xlabel('经度方向坐标x')
@@ -1123,16 +1119,29 @@ def EvolutionTest():
         plt.yticks(np.arange(0, 100, 10))  # fixed
         cb.set_label('热功率 单位(MW)')
         plt.title('热功率空间分布图')
+
+        ax1 = plt.subplot(1, 2, 2)
+        im = plt.plot(x, y1, "r-")
+        im = plt.plot(x, y2, "g-")
+        im = plt.plot(x, y3, "b-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('燃烧功率(兆瓦)')
         return im
 
-
-    t = np.array(list(range(0, 100)))
+    t = np.array(list(range(0, 60)))
+    x, y1, y2, y3 = [], [], [], []
 
     def init():
         pass
 
     def update_point(step):
         retval = EvolutionBaseObj.update()
+        x.append(step)
+        y1.append(retval[0][0])
+        y2.append(retval[25][25])
+        y3.append(retval[50][50])
+        if step == 10:
+            EvolutionBaseObj.time_evolution_function.add_functions(Ev_func2)
         # retval = space_evolution(EvolutionBaseObj.get_value())
         # EvolutionBaseObj.set_value(value=retval)
         # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
@@ -1143,6 +1152,160 @@ def EvolutionTest():
 
     # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
     plt.show()
+
+# </editor-fold>
+
+
+def EvolutionTest():
+    """
+    A test for evolution
+    :return:
+    Assuming that there are several units affecting the hazard.
+    """
+    print("===== EvolutionBase test ======")
+    # EvolutionsTestCase_01()
+    # EvolutionsTestCase_02()
+    # EvolutionsTestCase_03()
+    # EvolutionsTestCase_04()
+    # EvolutionsTestCase_05()
+    # EvolutionsTestCase_06()
+    # EvolutionsTestCase_07()
+    # EvolutionsTestCase_08()
+    print("----- Time and space evolution functions -----")
+    # =============== init data ===============
+    init_value = np.zeros([100, 100])
+    init_value[49:51, 49:51] = 1
+    # print(init_value)
+    init_grad = np.ones([100, 100]) * 0
+    init_dgrad = np.ones([100, 100]) * -0.01
+    # init_spread = np.ones([100, 100]) * -0.01  # How to use the param
+    # init_dspread = np.ones([100, 100]) * -0.01  # How to use the param
+    init_spread = [2, 2, 1]
+    init_dspread = [1, 1, 1]
+    total_sum = np.ones([100, 100]) * 2000
+
+    EvolutionBaseObj = EvolutionBase(id="01",
+                                     name="EvolutionTest01",
+                                     class_name="Hazardbase",
+                                     init_value=init_value,
+                                     init_grad=init_grad,
+                                     init_dgrad=init_dgrad,
+                                     init_spread=init_spread,
+                                     init_dspread=init_dspread,
+                                     min_value=0,
+                                     max_value=100,
+                                     total_sum=total_sum,
+                                     area=[100, 100, 100],
+                                     stride=[2, 2, 1],
+                                     )
+
+    # Define a custom evolution function
+    EvolutionBaseObj.time_evolution_function.params = [np.zeros([100, 100]), np.zeros([100, 100])]  # init
+    EvolutionBaseObj.set_mode(mode="mesh")
+    EvolutionBaseObj.evolution_localmesh.mask = np.zeros([100, 100])
+    EvolutionBaseObj.devolution_localmesh.mask = np.zeros([100, 100])
+
+    def update_callback(Obj: EvolutionBase):
+        """A test for update callback """
+        # Obj.time_evolution_function.params = [Obj.get_value()] # PASS
+        Obj.time_evolution_function.params = [(Obj.total_sum - Obj.current_sum) / 10, Obj.grad]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+        # Obj.localmesh.mask = (Obj.get_value() > 0) * 1
+        # Obj.localmesh.mask = (Obj.init_value > 0) * 1
+        pass
+
+    EvolutionBaseObj.update_callback = update_callback
+
+    def Ev_func1(args):
+        return args[0] / 50
+        # return 1
+
+    def Ev_func2(args):
+        return args[0] / 50
+
+    EvolutionBaseObj.time_evolution_function.add_functions(Ev_func1)
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    fig2 = plt.figure(num=2, figsize=(128, 108))
+    x, y = [], []
+
+    def Evolution_plot(retval: np.ndarray, delta_v: np.ndarray, grad: np.ndarray):
+        plt.subplot(2, 2, 1)
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图')
+
+        plt.subplot(2, 2, 2)
+        im = plt.imshow(delta_v, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=200)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('残差热功率 单位(MW)')
+        plt.title('残差空间分布图')
+
+        plt.subplot(2, 2, 3)
+        im = plt.imshow(grad, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=1)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('梯度')
+        plt.title('梯度空间分布图')
+
+
+        ax1 = plt.subplot(2, 2, 4)
+        im = plt.plot(x, y1, "r-")
+        im = plt.plot(x, y2, "g-")
+        im = plt.plot(x, y3, "b-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('燃烧功率(兆瓦)')
+
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        return im
+
+    t = np.array(list(range(0, 80)))
+    x, y1, y2, y3 = [], [], [], []
+
+    def init():
+        # EvolutionBaseObj.set_mask(mask=(EvolutionBaseObj.get_value() > 0)*1)
+        EvolutionBaseObj.evolution_localmesh.mask = (EvolutionBaseObj.get_value() > 0)*1
+        EvolutionBaseObj.devolution_localmesh.mask = np.zeros_like(EvolutionBaseObj.evolution_localmesh.mask)
+        pass
+
+    def update_point(step):
+        retval = EvolutionBaseObj.update()
+        x.append(step)
+        y1.append(retval[0][0])
+        y2.append(retval[25][25])
+        y3.append(retval[50][50])
+        # if step == 10:
+        #     EvolutionBaseObj.time_evolution_function.add_functions(Ev_func2)
+        # retval = space_evolution(EvolutionBaseObj.get_value())
+        # EvolutionBaseObj.set_value(value=retval)
+        # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
+        return Evolution_plot(retval,
+                              EvolutionBaseObj.time_evolution_function.params[0],
+                              EvolutionBaseObj.evolution_localmesh.mask)
+
+    ani = FuncAnimation(fig2, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
+    plt.show()
+
+
 
 if __name__=="__main__":
     EvolutionTest()
