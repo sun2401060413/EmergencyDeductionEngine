@@ -1646,6 +1646,8 @@ def EvolutionTest():
     from matplotlib.animation import FuncAnimation
     plt.rcParams['font.sans-serif'] = ['SimHei']
     plt.rcParams['axes.unicode_minus'] = False
+    import matplotlib
+    matplotlib.rcParams['animation.embed_limit'] = 2 ** 128
     fig2 = plt.figure(num=2, figsize=(15, 8))
     x, y = [], []
 
@@ -1787,9 +1789,10 @@ def EvolutionTest():
     ani = FuncAnimation(fig2, update_point, frames=t,
                         init_func=init, interval=300, repeat=False)
 
-    ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\6pts_in_hazardbase_sim.gif")
-    # with open(r"D:\Project\EmergencyDeductionEngine\docs\figs\2.html", "w") as f:
-    #     print(ani.to_jshtml(), file=f)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\6pts_in_hazardbase_sim.gif")
+    with open(r"D:\Project\EmergencyDeductionEngine\docs\figs\0420.html", "w") as f:
+        print(ani.to_jshtml(), file=f)
 
     plt.show()
 
