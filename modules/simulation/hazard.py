@@ -357,9 +357,11 @@ class EvolutionBase(Element):
         #     return self._value
 
         # self._value = np.round(np.clip(self._value + np.multiply(self._delta_time_evolution(), self._mask) + np.multiply(self._delta_time_devolution(), self._mask), a_min=self.min_value, a_max=self.max_value), 3)
-        self._value = np.round(np.clip(self._value + np.multiply(self._delta_time_evolution(), self._mask) + np.multiply(self._delta_time_devolution(), self.devolution_localmesh.mask), a_min=self.min_value, a_max=self.max_value), 3)
-        self.evolution_localmesh.mask, self.devolution_localmesh.mask = self._delta_space_evolution(), self._delta_space_devolution()
-        self._mask = np.clip(self.evolution_localmesh.mask - self.devolution_localmesh.mask, a_min=0, a_max=1)
+        self._value = np.round(np.clip(self._value + np.multiply(self._delta_time_evolution(), self.evolution_localmesh.mask) + np.multiply(self._delta_time_devolution(), self.devolution_localmesh.mask), a_min=self.min_value, a_max=self.max_value), 3)
+        self.evolution_localmesh.mask = self._delta_space_evolution() - self.devolution_localmesh.mask
+        self.devolution_localmesh.mask = self._delta_space_devolution()
+
+        # self._mask = np.clip(self.evolution_localmesh.mask - self.devolution_localmesh.mask, a_min=0, a_max=1)
         if self.update_callback is not None:
             call_function(self, self.update_callback)
         return self._value
@@ -1650,7 +1652,7 @@ def EvolutionTest():
     pt_view= [[99, 0], [25, 35], [50, 50], [60, 40], [25, 75], [75, 75]]
 
     def Evolution_plot(retval: np.ndarray, evolution_mask:np.ndarray, devolution_mask:np.ndarray, mask:np.ndarray):
-        plt.subplot(2, 3, 1)
+        plt.subplot(2, 2, 1)
         meshval = retval.reshape([100, 100])
         im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
         im = plt.plot(pt_view[0][0], pt_view[0][1], "o", color="r")
@@ -1667,7 +1669,7 @@ def EvolutionTest():
         cb.set_label('热功率 单位(MW)')
         plt.title('热功率空间分布图')
 
-        plt.subplot(2, 3, 2)
+        plt.subplot(2, 2, 3)
         im = plt.imshow(evolution_mask, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=1)
         im = plt.plot(pt_view[0][0], pt_view[0][1], "o", color="r")
         im = plt.plot(pt_view[1][0], pt_view[1][1], "o", color="g")
@@ -1683,7 +1685,7 @@ def EvolutionTest():
         cb.set_label('影响程度')
         plt.title('EvolutionMask')
 
-        plt.subplot(2, 3, 3)
+        plt.subplot(2, 2, 4)
         im = plt.imshow(devolution_mask, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=1)
         im = plt.plot(pt_view[0][0], pt_view[0][1], "o", color="r")
         im = plt.plot(pt_view[1][0], pt_view[1][1], "o", color="g")
@@ -1699,23 +1701,23 @@ def EvolutionTest():
         cb.set_label('影响程度')
         plt.title('DevolutionMask')
 
-        plt.subplot(2, 3, 4)
-        im = plt.imshow(mask, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=1)
-        im = plt.plot(pt_view[0][0], pt_view[0][1], "o", color="r")
-        im = plt.plot(pt_view[1][0], pt_view[1][1], "o", color="g")
-        im = plt.plot(pt_view[2][0], pt_view[2][1], "o", color="b")
-        im = plt.plot(pt_view[3][0], pt_view[3][1], "o", color="c")
-        im = plt.plot(pt_view[4][0], pt_view[4][1], "o", color="m")
-        im = plt.plot(pt_view[5][0], pt_view[5][1], "o", color="y")
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        cb = plt.colorbar()
-        plt.xticks(np.arange(0, 100, 10))  # fixed
-        plt.yticks(np.arange(0, 100, 10))  # fixed
-        cb.set_label('影响程度')
-        plt.title('Mask')
+        # plt.subplot(2, 3, 4)
+        # im = plt.imshow(mask, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=1)
+        # im = plt.plot(pt_view[0][0], pt_view[0][1], "o", color="r")
+        # im = plt.plot(pt_view[1][0], pt_view[1][1], "o", color="g")
+        # im = plt.plot(pt_view[2][0], pt_view[2][1], "o", color="b")
+        # im = plt.plot(pt_view[3][0], pt_view[3][1], "o", color="c")
+        # im = plt.plot(pt_view[4][0], pt_view[4][1], "o", color="m")
+        # im = plt.plot(pt_view[5][0], pt_view[5][1], "o", color="y")
+        # plt.xlabel('经度方向坐标x')
+        # plt.ylabel('纬度方向坐标y')
+        # cb = plt.colorbar()
+        # plt.xticks(np.arange(0, 100, 10))  # fixed
+        # plt.yticks(np.arange(0, 100, 10))  # fixed
+        # cb.set_label('影响程度')
+        # plt.title('Mask')
 
-        ax1 = plt.subplot(2, 3, 5)
+        ax1 = plt.subplot(2, 2, 2)
         im = plt.plot(x, y1, "r-")
         im = plt.plot(x, y2, "g-")
         im = plt.plot(x, y3, "b-")
@@ -1753,6 +1755,8 @@ def EvolutionTest():
         y5.append(retval[pt_view[4][1]][pt_view[4][0]])
         y6.append(retval[pt_view[5][1]][pt_view[5][0]])
 
+        if step == 10:
+            EvolutionBaseObj.evolution_localmesh.mask[14:16, 14:16] = 1.0
         if step == 20:
             # tmp = EvolutionBaseObj.get_mask()
             # tmp[60: 70, 60: 70] = 1
