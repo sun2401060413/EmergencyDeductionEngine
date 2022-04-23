@@ -12,14 +12,14 @@ class UnitBase(Element):
     Base class of all kinds units
     """
     def __init__(self,
-                 id=None,
-                 name=None,
-                 class_name=None,
-                 pos=(0, 0, 0),
-                 dir=(0, 0, 0),
-                 simulatable=True):
+                 id: str = None,
+                 name: str = None,
+                 class_name: str = None,
+                 pos: list = [0, 0, 0],
+                 dir: list = [0, 0, 0],
+                 simulatable: bool = True):
         """
-        :param uid: unit id
+        :param id: unit id
         :param name: unit name
         :param unit_class: unit class
         :param pos: unit position

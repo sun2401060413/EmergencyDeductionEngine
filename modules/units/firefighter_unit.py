@@ -1,13 +1,13 @@
 # !/usr/bin/python3
 # Coding:   utf-8
-# @File:    medical_unit.py
-# @Time:    2022/3/26 11:09
+# @File:    firefighter_unit.py
+# @Time:    2022/3/26 11:10
 # @Author:  Sun Zhu
 # @Version: 0.0.0
 
 from modules.simulation.unit import UnitBase
 
-class MedicalUnitDisastersResistants(UnitBase):
+class FireFighter(UnitBase):
     """
     FireFighters
     """
@@ -18,10 +18,10 @@ class MedicalUnitDisastersResistants(UnitBase):
                  pos=(0, 0, 0),
                  dir=(0, 0, 0),
                  simulatable=True,
-                 medical_unit_param={},
+                 firefighter_param={},
                  ):
         """
-        :param medical_unit_param: Medical Unit  parameters
+        :param fire fighter_param: fire fighter  parameters
         """
         super().__init__(
             uid=uid,
@@ -31,4 +31,4 @@ class MedicalUnitDisastersResistants(UnitBase):
             dir=dir,
             simulatable=simulatable
         )
-        self._params = medical_unit_param
+        self._params = firefighter_param

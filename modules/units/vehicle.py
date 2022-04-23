@@ -7,14 +7,14 @@
 
 from modules.simulation.unit import UnitBase
 
-class VehicleDisastersBearers(UnitBase):
+class Vehicle(UnitBase):
     """
     Normal Vehicles Class
     """
     def __init__(self,
-                 uid=None,
+                 id=None,
                  name=None,
-                 unit_class=None,
+                 class_name=None,
                  pos=(0, 0, 0),
                  dir=(0, 0, 0),
                  simulatable=True,
@@ -24,9 +24,9 @@ class VehicleDisastersBearers(UnitBase):
         :param vehicle_param: vehicle parameters
         """
         super().__init__(
-            uid=uid,
+            id=id,
             name=name,
-            unit_class=unit_class,
+            class_name=class_name,
             pos=pos,
             dir=dir,
             simulatable=simulatable
