@@ -11,8 +11,8 @@ import cv2
 from modules.simulation.simulator import Element
 from modules.simulation.mesh import LocalMeshScene
 
-# ActiveHazard
-# PassiveHazard
+# output_Hazard
+# input_Hazard
 
 
 class EvolutionBase(Element):
@@ -47,7 +47,7 @@ class EvolutionBase(Element):
         self.total_sum = total_sum
         self.current_sum = 0
         self.pos = pos
-        self.passive_params: list = None
+        self.input_params: list = None
 
         self.area = area                    # area: length, width, height
         self.evolution_localmesh = LocalMeshScene(area[0], area[1], area[2], stride[0], stride[1], stride[2])
@@ -78,6 +78,7 @@ class EvolutionBase(Element):
         self.space_devolution_function = FunctionsBase()
 
         self.update_callback = None
+        self.default_update_func = None
 
         self._timestamp = 0
         self._begin_time = 0
@@ -235,6 +236,13 @@ class EvolutionBase(Element):
             call_function(self, self.update_callback)
         return self._value
 
+    def set_default_update_func(self, func=None):
+        self.default_update_func = func
+
+    def get_default_update(self):
+        return call_function_without_params(self.default_update_func)
+        # return self.default_update_func()
+
     def set_pt_pos(self, pt_pos=[0, 0, 0]):
         """
         :param pt_pos: point position for calculation
@@ -274,39 +282,63 @@ class HazardBase(Element):
         super().__init__(id, name, class_name)
         self.hazards_params = hazards_params
         self.hazards_list = {}
-        self.hazards_mappings = {}
+        self.hazards_mappings_list = {}
+        self.value_list = {}
 
-    def register_hazard(self, hazard_name: str = None, hazard_object: EvolutionBase = None):
+    def register_hazard(self, hazard_object: EvolutionBase = None):
         """
-        设想：一个伤害体可能包括多个待演化要素，例如：火灾可能包括heat/CO/CO2/O2等要素的强度；人可能包括
         :param hazard_name:
         :param hazard_object:
         :return:
         """
         if hazard_object is None:
-            self.hazards_list[hazard_name] = EvolutionBase()
+            print("The hazard_object is None")
         else:
-            self.hazards_list[hazard_name] = hazard_object
+            self.hazards_list[hazard_object.get_name()] = hazard_object
         return self.hazards_list
 
-    def de_register_hazard(self, hazard_name: str = None):
+    def de_register_hazard(self, hazard_object: EvolutionBase = None):
         """
-        :param hazard_name:
+        :param :
         :return:
         """
-        if hazard_name:
-            if self.hazards_list.__contains__(hazard_name):
-                self.hazards_list.pop(hazard_name)
+        if hazard_object:
+            if self.hazards_list.__contains__(hazard_object.get_name()):
+                self.hazards_list.pop(hazard_object.get_name())
             else:
-                print("The hazard:\"{}\" dosen't exist".format(hazard_name))
+                print("The hazard:\"{}\" dosen't exist".format(hazard_object.get_name()))
         else:
             print("The de_register_hazard function requires a hazard_name")
 
-    def register_hazard_mapping(self):
-        pass
+    def get_hazard_by_name(self, hazard_name: str = None):
+        return self.hazards_list[hazard_name]
 
-    def de_register_hazard_mapping(self):
-        pass
+    def register_hazard_mapping(self,
+                                master_hazard_object: EvolutionBase = None,
+                                slave_hazard_object: EvolutionBase = None):
+        if not self.hazards_list.__contains__(master_hazard_object.get_name()):
+            self.register_hazard(hazard_object=master_hazard_object)
+        if not self.hazards_list.__contains__(slave_hazard_object.get_name()):
+            self.register_hazard(hazard_object=slave_hazard_object)
+
+        tmp_mapping_obj = HazardMapping(
+            master_side=master_hazard_object,
+            slave_side=slave_hazard_object
+        )
+        tmp_mapping_name = tmp_mapping_obj.get_mapping_name()
+        self.hazards_mappings_list[tmp_mapping_name] = tmp_mapping_obj
+
+    def de_register_hazard_mapping(self,
+                                   master_hazard_object: EvolutionBase = None,
+                                   slave_hazard_object: EvolutionBase = None):
+
+        tmp_mapping_name = HazardMapping.get_default_mapping_name(master_name=master_hazard_object.get_name(),
+                                                                  slave_name=slave_hazard_object.get_name())
+        if self.hazards_mappings_list.__contains__(tmp_mapping_name):
+            self.hazards_mappings_list.pop(tmp_mapping_name)
+
+    def get_hazard_mapping_by_name(self, master_hazard_name: str = None, slave_hazard_name: str = None):
+        return self.hazards_mappings_list[HazardMapping.get_default_mapping_name(master_name=master_hazard_name, slave_name=slave_hazard_name)]
 
     def parse_parameters(self):
         """
@@ -316,6 +348,18 @@ class HazardBase(Element):
             pass
         else:
             pass
+
+    def update(self):
+        for hazard_mapping in self.hazards_mappings_list:
+            self.hazards_mappings_list[hazard_mapping].update_mapping(
+                master_params=self.hazards_mappings_list[hazard_mapping].master_side.get_value(
+                    self.hazards_mappings_list[hazard_mapping].slave_side.get_pos()
+                )
+            )
+
+        self.value_list = {}
+        for hazard in self.hazards_list:
+            self.value_list[self.hazards_list[hazard].get_name()] = self.hazards_list[hazard].get_default_update()
 
 
 class FunctionsBase:
@@ -393,20 +437,31 @@ class HazardMapping(Element):
             self.slave_side.update_callback = self.defalut_mapping_callback
 
     def update_mapping(self, master_params: list=None):
-        self.slave_side.passive_params = master_params
-        return call_function_without_params(self.master_update_func), call_function_without_params(self.slave_update_func)
+        self.slave_side.input_params = master_params
+        print("input_params:", self.slave_side.input_params)
+        # return call_function_without_params(self.master_update_func), call_function_without_params(self.slave_update_func)
 
     def set_mapping_update_functions(self, master_func=None, slave_func=None):
         self.master_update_func = master_func
         self.slave_update_func = slave_func
 
+    def get_mapping_name(self):
+        if self.master_side and self.slave_side:
+            return self.get_default_mapping_name(master_name=self.master_side.name,
+                                                 slave_name=self.slave_side.name)
+        else:
+            return None
+
+    @staticmethod
+    def get_default_mapping_name(master_name: str = None, slave_name: str = None):
+        return "{0}_{1}".format(master_name, slave_name)
 
     @staticmethod
     def defalut_mapping_callback(Obj:EvolutionBase):
-        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum, Obj.passive_params]
-        Obj.time_evolution_function.params = [Obj.get_value(), Obj.dgrad, Obj.total_sum, Obj.current_sum, Obj.passive_params]
-        Obj.space_evolution_function.params = [Obj.get_value(), Obj.spread, Obj.total_sum, Obj.current_sum, Obj.passive_params]
-        Obj.space_devolution_function.params = [Obj.get_value(), Obj.dspread, Obj.total_sum, Obj.current_sum, Obj.passive_params]
+        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum, Obj.input_params]
+        Obj.time_devolution_function.params = [Obj.get_value(), Obj.dgrad, Obj.total_sum, Obj.current_sum, Obj.input_params]
+        Obj.space_evolution_function.params = [Obj.get_value(), Obj.spread, Obj.total_sum, Obj.current_sum, Obj.input_params]
+        Obj.space_devolution_function.params = [Obj.get_value(), Obj.dspread, Obj.total_sum, Obj.current_sum, Obj.input_params]
         Obj.current_sum = Obj.current_sum + Obj.get_value()
         pass
 
@@ -462,12 +517,257 @@ def update_callback_test(Obj : EvolutionBase):
 
 
 def HazardBaseTest():
+    # print("====== HazardMapping test =====")
+    # HazardBaseObj = HazardBase()
+    # HazardBaseObj.de_register_hazard()
+    # HazardBaseObj.de_register_hazard("test1")
+    # HazardBaseObj.register_hazard("test1")
+    # HazardBaseObj.hazards_list["test1"].set_id("1")
+    # print(HazardBaseObj.hazards_list["test1"].get_id())
+    print("----- HazardBase test -----")
+
+    init_value = np.zeros([100, 100])
+    init_value[49:51, 49:51] = 20
+    init_grad = np.ones([100, 100]) * 2
+    init_dgrad = np.ones([100, 100]) * -0.1
+    init_spread = [2, 2, 1]
+    init_dspread = [1, 1, 1]
+    total_sum = np.ones([100, 100]) * 4000
+    MasterObj = EvolutionBase(
+        id="01",
+        name="MasterEvolutionObj",
+        class_name="EvolutionBase",
+        init_value=init_value,
+        init_grad=init_grad,
+        init_dgrad=init_dgrad,
+        init_spread=init_spread,
+        init_dspread=init_dspread,
+        min_value=0,
+        max_value=100,
+        total_sum=total_sum,
+        area=[100, 100, 100],
+        stride=[2, 2, 1])
+    MasterObj.time_evolution_function.params = [np.array([100, 100]),  # value
+                                                np.array([100, 100]),  # grad
+                                                np.array([100, 100]),  # total sum
+                                                np.array([100, 100]),  # current sum
+                                                []  # input params
+                                                ]
+    MasterObj.time_devolution_function.params = [np.array([100, 100]),  # value
+                                                 np.array([100, 100]),  # dgrad
+                                                 np.array([100, 100]),  # total sum
+                                                 np.array([100, 100]),  # current sum
+                                                 []  # input params
+                                                 ]
+    MasterObj.space_evolution_function.params = [np.array([100, 100]),  # value
+                                                 np.array([100, 100]),  # spread
+                                                 np.array([100, 100]),  # total sum
+                                                 np.array([100, 100]),  # current sum
+                                                 []  # input params
+                                                 ]
+    MasterObj.space_devolution_function.params = [np.array([100, 100]),  # value
+                                                  np.array([100, 100]),  # dspread
+                                                  np.array([100, 100]),  # total sum
+                                                  np.array([100, 100]),  # current sum
+                                                  []  # input params
+                                                  ]
+    MasterObj.set_mode(mode="mesh")
+    MasterObj.evolution_localmesh.mask = (init_value > 0) * 1.0
+    MasterObj.devolution_localmesh.mask = np.zeros([100, 100])
+    MasterObj.enable_time_evolution()
+    MasterObj.enable_space_evolution()
+    MasterObj.set_default_update_func(MasterObj.update)
+
+    # ===== slaveObj_1 =====
+    slaveObj_1 = EvolutionBase(
+        id='02',
+        name='SlaveEvolutionObj_1',
+        class_name='EvolutionBase',
+        init_value=100,
+        init_grad=-1,
+        init_dgrad=1,
+        min_value=0,
+        max_value=1000,
+        total_sum=100,
+    )
+    # Define a custom evolution function
+    slaveObj_1.time_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_1.time_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_1.space_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_1.space_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+
+    slaveObj_1.set_mode(mode="point")
+    slaveObj_1.set_pos(pos=[50, 50])
+    slaveObj_1.enable_time_evolution()
+    slaveObj_1.enable_space_evolution()
+    slaveObj_1.set_default_update_func(func=slaveObj_1.update_in_temperal)
+
+    # ===== slaveObj_2 =====
+    slaveObj_2 = EvolutionBase(
+        id='03',
+        name='SlaveEvolutionObj_2',
+        class_name='EvolutionBase',
+        init_value=100,
+        init_grad=-1,
+        init_dgrad=1,
+        min_value=0,
+        max_value=1000,
+        total_sum=100,
+    )
+    # Define a custom evolution function
+    slaveObj_2.time_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_2.time_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_2.space_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj_2.space_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+
+    slaveObj_2.set_mode(mode="point")
+    slaveObj_2.set_pos(pos=[75, 75])
+    slaveObj_2.enable_time_evolution()
+    slaveObj_2.enable_space_evolution()
+    slaveObj_2.set_default_update_func(func=slaveObj_2.update_in_temperal)
+
+    # =====================
+
+    # HazardMappingObj_1 = HazardMapping(master_side=MasterObj, slave_side=slaveObj_1)
+    # HazardMappingObj_2 = HazardMapping(master_side=MasterObj, slave_side=slaveObj_2)
+
+    def slave_side_callback_func_v1(Obj: EvolutionBase = None):
+        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum,
+                                              [Obj.input_params]]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+
+    def slave_side_evolution_func_v1(args):
+        # print("args:", args)
+        tmp = args[-1][0]
+        print("tmp:", tmp)
+        if tmp > 90:
+            print("tmp>90")
+            return -5
+        elif tmp > 70 and tmp <= 90:
+            print("tmp>70")
+            return -3
+        elif tmp > 50 and tmp <= 70:
+            print("tmp>50")
+            return -2
+        elif tmp > 20 and tmp <= 50:
+            print("tmp>20")
+            return -1
+        elif tmp > 0 and tmp <= 20:
+            print("tmp>0")
+            return -0.5
+        else:
+            return 0
+
+
+
+    slaveObj_1.update_callback = slave_side_callback_func_v1
+    slaveObj_2.update_callback = slave_side_callback_func_v1
+    # slaveObj_1.set_default_update_func(func=slaveObj_1.update_in_temperal)
+
+    slaveObj_1.time_evolution_function.add_functions(slave_side_evolution_func_v1)
+    slaveObj_2.time_evolution_function.add_functions(slave_side_evolution_func_v1)
+
+    slaveObj_1.time_evolution_function.params = [0, 0, 0, 0, [0]]
+    slaveObj_2.time_evolution_function.params = [0, 0, 0, 0, [0]]
+    # slaveObj_2.set_default_update_func(func=slaveObj_2.update_in_temperal)
+
+    # HazardMappingObj_1.set_slave_callback_function(slave_side_callback_func_v1)
+    # HazardMappingObj_1.slave_side.time_evolution_function.add_functions(slave_side_evolution_func_v1)
+    # HazardMappingObj_1.set_mapping_update_functions(HazardMappingObj_1.master_side.update,
+    #                                               HazardMappingObj_1.slave_side.update_in_temperal)
+    #
+    # HazardMappingObj_1.slave_side.input_params = HazardMappingObj_1.master_side.get_value([50, 50])  # init
+    # HazardMappingObj_1.slave_side.time_evolution_function.params = [0, 0, 0, 0,
+    #                                                               [HazardMappingObj_1.master_side.get_value([50, 50])]]
+    # # HazardMappingObj_1.update_mapping(master_params=HazardMappingObj_1.master_side.get_value([50, 50]))
+    #
+    # HazardMappingObj_2.set_slave_callback_function(slave_side_callback_func_v1)
+    # HazardMappingObj_2.slave_side.time_evolution_function.add_functions(slave_side_evolution_func_v1)
+    # HazardMappingObj_2.set_mapping_update_functions(HazardMappingObj_2.master_side.update,
+    #                                               HazardMappingObj_2.slave_side.update_in_temperal)
+    #
+    # HazardMappingObj_2.slave_side.input_params = HazardMappingObj_2.master_side.get_value([75, 75])  # init
+    # HazardMappingObj_2.slave_side.time_evolution_function.params = [0, 0, 0, 0,
+    #                                                               [HazardMappingObj_2.master_side.get_value([75, 75])]]
+    # # HazardMappingObj_2.update_mapping(master_params=HazardMappingObj_2.master_side.get_value([75, 75]))
+
     HazardBaseObj = HazardBase()
-    HazardBaseObj.de_register_hazard()
-    HazardBaseObj.de_register_hazard("test1")
-    HazardBaseObj.register_hazard("test1")
-    HazardBaseObj.hazards_list["test1"].set_id("1")
-    print(HazardBaseObj.hazards_list["test1"].get_id())
+
+    HazardBaseObj.register_hazard_mapping(
+        master_hazard_object=MasterObj,
+        slave_hazard_object=slaveObj_1
+    )
+
+    HazardBaseObj.register_hazard_mapping(
+        master_hazard_object=MasterObj,
+        slave_hazard_object=slaveObj_2
+    )
+
+    # HazardBaseObj.hazards_mappings_list[HazardMapping.get_default_mapping_name(master_name=MasterObj.get_name(), slave_name=slaveObj_1.get_name())].set_slave_callback_function()
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    fig2 = plt.figure(num=2, figsize=(128, 108))
+
+    def Evolution_plot(retval: np.ndarray, ):
+        plt.subplot(2, 2, 1)
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        im = plt.plot(50, 50, color='red', marker="o")
+        im = plt.plot(75, 75, color='green', marker="o")
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图')
+
+        ax1 = plt.subplot(2, 2, 2)
+        im = plt.plot(x, ya, "r-")
+        im = plt.plot(x, yb, "g-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('热功率（MW）')
+
+        ax1 = plt.subplot(2, 2, 3)
+        im = plt.plot(x, y1, "r-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('生命值')
+
+        ax1 = plt.subplot(2, 2, 4)
+        im = plt.plot(x, y2, "g-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('生命值')
+
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        return im
+
+    t = np.array(list(range(0, 120)))
+    x, ya, yb, y1, y2= [], [], [], [], []
+
+    def init():
+        pass
+
+    def update_point(step):
+        # MasterEvolutionObj/SlaveEvolutionObj_1/SlaveEvolutionObj_2
+        HazardBaseObj.update()
+        x.append(step)
+        ya.append(HazardBaseObj.value_list[MasterObj.get_name()][slaveObj_1.pos[0]][slaveObj_1.pos[1]])
+        yb.append(HazardBaseObj.value_list[MasterObj.get_name()][slaveObj_2.pos[0]][slaveObj_2.pos[1]])
+        y1.append(HazardBaseObj.value_list[slaveObj_1.get_name()])
+        y2.append(HazardBaseObj.value_list[slaveObj_2.get_name()])
+
+        # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
+        return Evolution_plot(HazardBaseObj.value_list[MasterObj.get_name()])
+
+    ani = FuncAnimation(fig2, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
+    plt.show()
     pass
 
 def HazardMappingTest():
@@ -497,25 +797,25 @@ def HazardMappingTest():
                                                 np.array([100, 100]),   # grad
                                                 np.array([100, 100]),   # total sum
                                                 np.array([100, 100]),   # current sum
-                                                []                      # passive params
+                                                []                      # input params
                                             ]
     MasterObj.time_devolution_function.params = [np.array([100, 100]),   # value
                                                 np.array([100, 100]),   # dgrad
                                                 np.array([100, 100]),   # total sum
                                                 np.array([100, 100]),   # current sum
-                                                []                      # passive params
+                                                []                      # input params
                                             ]
     MasterObj.space_evolution_function.params = [np.array([100, 100]),   # value
                                                 np.array([100, 100]),   # spread
                                                 np.array([100, 100]),   # total sum
                                                 np.array([100, 100]),   # current sum
-                                                []                      # passive params
+                                                []                      # input params
                                             ]
     MasterObj.space_devolution_function.params = [np.array([100, 100]),   # value
                                                 np.array([100, 100]),   # dspread
                                                 np.array([100, 100]),   # total sum
                                                 np.array([100, 100]),   # current sum
-                                                []                      # passive params
+                                                []                      # input params
                                             ]
     MasterObj.set_mode(mode="mesh")
     MasterObj.evolution_localmesh.mask = (init_value > 0)*1.0
@@ -534,10 +834,10 @@ def HazardMappingTest():
         total_sum=100,
     )
     # Define a custom evolution function
-    slaveObj.time_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/passive params
-    slaveObj.time_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/passive params
-    slaveObj.space_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/passive params
-    slaveObj.space_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/passive params
+    slaveObj.time_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.time_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.space_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.space_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
 
     slaveObj.set_mode(mode="point")
     slaveObj.enable_time_evolution()
@@ -545,10 +845,8 @@ def HazardMappingTest():
 
     HazardMappingObj = HazardMapping(master_side=MasterObj, slave_side=slaveObj)
 
-
-
     def slave_side_callback_func_v1(Obj: EvolutionBase=None):
-        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum, [Obj.passive_params]]
+        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum, [Obj.input_params]]
         Obj.current_sum = Obj.current_sum + Obj.get_value()
 
 
@@ -578,7 +876,7 @@ def HazardMappingTest():
     HazardMappingObj.slave_side.time_evolution_function.add_functions(slave_side_evolution_func_v1)
     HazardMappingObj.set_mapping_update_functions(HazardMappingObj.master_side.update, HazardMappingObj.slave_side.update_in_temperal)
 
-    HazardMappingObj.slave_side.passive_params = HazardMappingObj.master_side.get_value([50, 50])       # init
+    HazardMappingObj.slave_side.input_params = HazardMappingObj.master_side.get_value([50, 50])       # init
     HazardMappingObj.slave_side.time_evolution_function.params = [0, 0, 0, 0, [HazardMappingObj.master_side.get_value([50, 50])]]
     HazardMappingObj.update_mapping(master_params=HazardMappingObj.master_side.get_value([50, 50]))
 
@@ -612,18 +910,19 @@ def HazardMappingTest():
     t = np.array(list(range(0, 120)))
     x, y1 = [], []
 
+
     def init():
         pass
 
     def update_point(step):
-        retval_master, retval_slave = HazardMappingObj.update_mapping(master_params=HazardMappingObj.master_side.get_value(pt_pos=[50, 50]))
+        HazardMappingObj.update_mapping(master_params=HazardMappingObj.master_side.get_value(pt_pos=[50, 50]))
         # print("retval_master:", retval_master, "retval_slave:", retval_slave)
         print("params:", HazardMappingObj.slave_side.time_evolution_function.params[-1])
         x.append(step)
-        y1.append(retval_slave)
+        # y1.append(retval_slave)
 
         # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
-        return Evolution_plot(retval_master)
+        # return Evolution_plot(retval_master)
 
     ani = FuncAnimation(fig2, update_point, frames=t,
                         init_func=init, interval=300, repeat=False)
@@ -636,8 +935,8 @@ def HazardMappingTest():
 if __name__=="__main__":
     # EvolutionTest()
     # space_evolution_func_test()
-    # HazardBaseTest()
-    HazardMappingTest()
+    HazardBaseTest()
+    # HazardMappingTest()
 
 
     pass
