@@ -1346,6 +1346,168 @@ def space_evolution_func_test():
 
 # </editor-fold>
 
+def HazardMappingTest():
+    print("====== HazardMapping test =====")
+    init_value = np.zeros([100, 100])
+    init_value[49:51, 49:51] = 20
+    init_grad = np.ones([100, 100]) * 2
+    init_dgrad = np.ones([100, 100]) * -0.1
+    init_spread = [2, 2, 1]
+    init_dspread = [1, 1, 1]
+    total_sum = np.ones([100, 100]) * 4000
+    MasterObj = EvolutionBase(
+        id="01",
+        name="DisasterEvolutionObj",
+        class_name="EvolutionBase",
+        init_value=init_value,
+        init_grad=init_grad,
+        init_dgrad=init_dgrad,
+        init_spread=init_spread,
+        init_dspread=init_dspread,
+        min_value=0,
+        max_value=100,
+        total_sum=total_sum,
+        area=[100, 100, 100],
+        stride=[2, 2, 1])
+    MasterObj.time_evolution_function.params = [np.array([100, 100]),   # value
+                                                np.array([100, 100]),   # grad
+                                                np.array([100, 100]),   # total sum
+                                                np.array([100, 100]),   # current sum
+                                                []                      # input params
+                                            ]
+    MasterObj.time_devolution_function.params = [np.array([100, 100]),   # value
+                                                np.array([100, 100]),   # dgrad
+                                                np.array([100, 100]),   # total sum
+                                                np.array([100, 100]),   # current sum
+                                                []                      # input params
+                                            ]
+    MasterObj.space_evolution_function.params = [np.array([100, 100]),   # value
+                                                np.array([100, 100]),   # spread
+                                                np.array([100, 100]),   # total sum
+                                                np.array([100, 100]),   # current sum
+                                                []                      # input params
+                                            ]
+    MasterObj.space_devolution_function.params = [np.array([100, 100]),   # value
+                                                np.array([100, 100]),   # dspread
+                                                np.array([100, 100]),   # total sum
+                                                np.array([100, 100]),   # current sum
+                                                []                      # input params
+                                            ]
+    MasterObj.set_mode(mode="mesh")
+    MasterObj.evolution_localmesh.mask = (init_value > 0)*1.0
+    MasterObj.devolution_localmesh.mask = np.zeros([100, 100])
+    MasterObj.enable_time_evolution()
+    MasterObj.enable_space_evolution()
+    slaveObj = EvolutionBase(
+        id='02',
+        name='SlaveEvolutionObj',
+        class_name='EvolutionBase',
+        init_value=100,
+        init_grad=-1,
+        init_dgrad=1,
+        min_value=0,
+        max_value=1000,
+        total_sum=100,
+    )
+    # Define a custom evolution function
+    slaveObj.time_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.time_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.space_evolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+    slaveObj.space_devolution_function.params = [0, 0, 0, 0, []]  # value/grad/total sum/current sum/input params
+
+    slaveObj.set_mode(mode="point")
+    slaveObj.enable_time_evolution()
+    slaveObj.enable_space_evolution()
+
+    HazardMappingObj = HazardMapping(master_side=MasterObj, slave_side=slaveObj)
+
+    def slave_side_callback_func_v1(Obj: EvolutionBase=None):
+        Obj.time_evolution_function.params = [Obj.get_value(), Obj.grad, Obj.total_sum, Obj.current_sum, [Obj.input_params]]
+        Obj.current_sum = Obj.current_sum + Obj.get_value()
+
+
+    def slave_side_evolution_func_v1(args):
+        # print("args:", args)
+        tmp = args[-1][0]
+        # print("tmp:", tmp)
+        if tmp > 90:
+            # print("tmp>90")
+            return -5
+        elif tmp > 70 and tmp <= 90:
+            # print("tmp>70")
+            return -3
+        elif tmp > 50 and tmp <= 70:
+            # print("tmp>50")
+            return -2
+        elif tmp > 20 and tmp <=50:
+            # print("tmp>20")
+            return -1
+        elif tmp > 0 and tmp <= 20:
+            # print("tmp>0")
+            return -0.5
+        else:
+            return 0
+
+    HazardMappingObj.set_slave_callback_function(slave_side_callback_func_v1)
+    HazardMappingObj.slave_side.time_evolution_function.add_functions(slave_side_evolution_func_v1)
+    HazardMappingObj.set_mapping_update_functions(HazardMappingObj.master_side.update, HazardMappingObj.slave_side.update_in_temperal)
+
+    HazardMappingObj.slave_side.input_params = HazardMappingObj.master_side.get_value([50, 50])       # init
+    HazardMappingObj.slave_side.time_evolution_function.params = [0, 0, 0, 0, [HazardMappingObj.master_side.get_value([50, 50])]]
+    HazardMappingObj.update_mapping(master_params=HazardMappingObj.master_side.get_value([50, 50]))
+
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    fig2 = plt.figure(num=2, figsize=(128, 108))
+    x, y = [], []
+
+    def Evolution_plot(retval: np.ndarray,):
+        plt.subplot(1, 2, 1)
+        meshval = retval.reshape([100, 100])
+        im = plt.imshow(meshval, interpolation=None, cmap=plt.cm.BuGn, vmin=0, vmax=110)
+        plt.xlabel('经度方向坐标x')
+        plt.ylabel('纬度方向坐标y')
+        cb = plt.colorbar()
+        plt.xticks(np.arange(0, 100, 10))  # fixed
+        plt.yticks(np.arange(0, 100, 10))  # fixed
+        cb.set_label('热功率 单位(MW)')
+        plt.title('热功率空间分布图')
+
+        ax1 = plt.subplot(1, 2, 2)
+        im = plt.plot(x, y1, "r-")
+        ax1.set_xlabel('时间(分钟)')
+        ax1.set_ylabel('燃烧功率(兆瓦)')
+
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        return im
+
+    t = np.array(list(range(0, 120)))
+    x, y1 = [], []
+
+
+    def init():
+        pass
+
+    def update_point(step):
+        HazardMappingObj.update_mapping(master_params=HazardMappingObj.master_side.get_value(pt_pos=[50, 50]))
+        # print("retval_master:", retval_master, "retval_slave:", retval_slave)
+        print("params:", HazardMappingObj.slave_side.time_evolution_function.params[-1])
+        x.append(step)
+        # y1.append(retval_slave)
+
+        # fig2.savefig(r"D:\Project\EmergencyDeductionEngine\docs\figs\imgs\img_{:0>2d}.png".format(step))
+        # return Evolution_plot(retval_master)
+
+    ani = FuncAnimation(fig2, update_point, frames=t,
+                        init_func=init, interval=300, repeat=False)
+
+    # ani.save(r"D:\Project\EmergencyDeductionEngine\docs\figs\space_evolution_with_different_stride.gif")
+    plt.show()
+
+    pass
+
 
 def EvolutionTest():
     """
@@ -1367,5 +1529,5 @@ def EvolutionTest():
     EvolutionsTestCase_11()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     EvolutionTest()
