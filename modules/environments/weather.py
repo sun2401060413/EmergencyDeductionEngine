@@ -1,9 +1,3 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    weather.py
-# @Time:    2022/3/26 18:22
-# @Author:  Sun Zhu
-# @Version: 0.0.0
 
 from modules.simulation.envs import EnvBase
 
@@ -402,8 +396,8 @@ def WeatherEnvTest():
         plt.subplot(2, 3, 1)    # fixed
         meshval_visibility = np.array(retval["visibility"]).reshape([100, 100]) # fixed
         im = plt.imshow(meshval_visibility, interpolation=None, cmap=plt.cm.BuGn, extent=extent, aspect='auto', vmin=0, vmax=500)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         #plt.xticks(np.arange(25, 125, 25))  # fixed
@@ -411,15 +405,15 @@ def WeatherEnvTest():
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('能见度 单位(m)')
-        plt.title('能见度空间分布图')
+        cb.set_label('visibility(m)')
+        plt.title('Spatial distribution of visibility', fontsize='small',fontweight='medium')
 
         # plot brightness
         plt.subplot(2, 3, 2)    # fixed
         meshval_brightness = np.array(retval["brightness"]).reshape([100, 100]) # fixed
         plt.imshow(meshval_brightness, interpolation=None, cmap=plt.cm.hot, extent=extent, aspect='auto', vmin=900, vmax=1200) # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         # plt.xticks(np.arange(25, 125, 25))  # fixed
@@ -427,15 +421,15 @@ def WeatherEnvTest():
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('亮度 单位(lux)')
-        plt.title('亮度空间分布图')
+        cb.set_label('brightness(lux)')
+        plt.title('Spatial distribution of brightness', fontsize='small',fontweight='medium')
 
         # plot temperature
         plt.subplot(2, 3, 3)    # fixed
         meshval_temperature = np.array(retval["temperature"]).reshape([100, 100])   # fixed
         plt.imshow(meshval_temperature, interpolation=None, cmap=plt.cm.hot, extent=extent, aspect='auto', vmin=15, vmax=25)    # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         # plt.xticks(np.arange(25, 125, 25))  # fixed
@@ -443,15 +437,15 @@ def WeatherEnvTest():
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('温度 单位(℃)')
-        plt.title('温度空间分布图')
+        cb.set_label('temperature(℃)')
+        plt.title('Spatial distribution of temperature', fontsize='small',fontweight='medium')
 
         # plot wind speed
         plt.subplot(2, 3, 4)    # fixed
         meshval_wind_speed = np.array(retval["wind_speed"]).reshape([100, 100]) # fixed
         plt.imshow(meshval_wind_speed, interpolation=None, cmap=plt.cm.Reds, extent=extent, aspect='auto', vmin=0, vmax=5)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         # plt.xticks(np.arange(25, 125, 25))  # fixed
@@ -459,8 +453,8 @@ def WeatherEnvTest():
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('风速 单位(m/s)')
-        plt.title('风速空间分布图')
+        cb.set_label('wind speed(m/s)')
+        plt.title('Spatial distribution of wind speed', fontsize='small',fontweight='medium')
 
         # plot wind direction
         plt.subplot(2, 3, 5)    # fixed
@@ -476,16 +470,16 @@ def WeatherEnvTest():
         x, y, v, u = draw_wind_direction(meshval_wind_direction)
         plt.quiver(x, y, u, v, color="blue", pivot="tip", units="inches")
         plt.scatter(x, y, color="b", s=0.05)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        plt.title('风向空间分布图')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
+        plt.title('Spatial distribution of wind direction', fontsize='small',fontweight='medium')
 
         # plot rainfall
         plt.subplot(2, 3, 6)    # fixed
         meshval_rainfall = np.array(retval["rainfall"]).reshape([100, 100]) # fixed
         im = plt.imshow(meshval_rainfall, interpolation=None, cmap=plt.cm.GnBu, extent=extent, aspect='auto', vmin=5, vmax=25)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         # plt.xticks(np.arange(25, 125, 25))  # fixed
@@ -493,8 +487,8 @@ def WeatherEnvTest():
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('降水强度 单位(mm/24h)')
-        plt.title('降水量空间分布图')
+        cb.set_label('rainfall(mm/24h)')
+        plt.title('Spatial distribution of rainfall', fontsize='small',fontweight='medium')
         plt.subplots_adjust(wspace=0.4, hspace=0.4)
         return im
 
@@ -523,10 +517,10 @@ def WeatherEnvTest():
                         frames=t,
                         interval=10,
                         repeat=False)
-    # ani.save(r"D:\Project\EmergencyDeductionS\docs\figs\weather_base.gif")
-    with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\weather_test.html", "w") as f:
-        print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
-    plt.show()
+    ani.save(r"F:\ffproject\EmergencyDeduce\v0.6\EmergencyDeductionEngine\docs\figs\weather_evolution.gif")
+    #with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\weather_test.html", "w") as f:
+        #print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
+    #plt.show()
     print("===== Test accomplished! =====")
 
 if __name__=="__main__":
