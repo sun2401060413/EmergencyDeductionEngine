@@ -304,15 +304,15 @@ def WaveEnvTest():
         #x, y, v, u = draw_wave_direction(meshval_wave_direction)
         #plt.quiver(x, y, u, v, color="blue", pivot="tip", units="inches")
         #plt.scatter(x, y, color="b", s=0.05)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('海浪高度 单位(m)')
-        plt.title('浪高空间分布图')
+        cb.set_label('wave height(m)')
+        plt.title('Spatial distribution of wave height', fontsize='small',fontweight='medium')
 
         # plot wave_direction
 
@@ -323,16 +323,16 @@ def WaveEnvTest():
         x, y, v, u = draw_wave_direction(meshval_wave_direction)
         plt.quiver(x, y, u, v, color="red", pivot="tip", units="inches")
         plt.scatter(x, y, color="r", s=0.05)
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
-        plt.title('浪向空间分布图')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
+        plt.title('Spatial distribution of wave direction', fontsize='small',fontweight='medium')
 
         #plot tide_height
         plt.subplot(2, 3, 3)    # fixed
         meshval_tide_height = np.array(retval["tide_height"]).reshape([100, 100]) # fixed
         plt.imshow(meshval_tide_height, interpolation=None, cmap=plt.cm.BuPu, extent=extent, aspect='auto', vmin=-50, vmax=250)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         plt.xticks(np.arange(25, 150, 25))  # fixed
@@ -340,36 +340,36 @@ def WaveEnvTest():
         #lt.yticks(np.arange(25, 125, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('潮汐高度 单位(cm)')
-        plt.title('潮高空间分布图')
+        cb.set_label('tides height(cm)')
+        plt.title('Spatial distribution of tides height', fontsize='small',fontweight='medium')
 
         #plot wave_lifecycle
         plt.subplot(2, 3, 4)    # fixed
         meshval_wave_lifecycle = np.array(retval["wave_lifecycle"]).reshape([100, 100]) # fixed
         plt.imshow(meshval_wave_lifecycle, interpolation=None, cmap=plt.cm.BuGn, extent=extent, aspect='auto', vmin=0, vmax=25)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('海浪周期 单位(s)')
-        plt.title('海浪周期空间分布图')
+        cb.set_label('wave cycles(s)')
+        plt.title('Spatial distribution of wave cycles', fontsize='small',fontweight='medium')
 
         #plot wave_speed
         plt.subplot(2, 3, 5)    # fixed
         meshval_wave_speed = np.array(retval["wave_speed"]).reshape([100, 100]) # fixed
         plt.imshow(meshval_wave_speed, interpolation=None, cmap=plt.cm.Greens, extent=extent, aspect='auto', vmin=10, vmax=50)   # fixed
-        plt.xlabel('经度方向坐标x')
-        plt.ylabel('纬度方向坐标y')
+        plt.xlabel('longitude')
+        plt.ylabel('latitude')
         cb = plt.colorbar()
         plt.grid()
         plt.xticks(np.arange(25, 150, 25))  # fixed
         plt.yticks(np.arange(50, 150, 25))  # fixed
         plt.gca().invert_yaxis()
-        cb.set_label('海浪速度 单位(km/h)')
-        plt.title('浪速空间分布图')
+        cb.set_label('wave speed(km/h)')
+        plt.title('Spatial distribution of wave speed', fontsize='small',fontweight='medium')
         plt.subplots_adjust(wspace=0.4, hspace=0.4)
 
         return im
@@ -407,12 +407,13 @@ def WaveEnvTest():
     #matplotlib.rcParams["animation.ffmpeg_path"] = ffmpegpath
     #writer = animation.FFMpegWriter()
     # ani.save(r"E:\fproject\docs\figs\wave_test.mp4", writer=writer) #保存为mp4文件
+    ani.save(r"F:\ffproject\EmergencyDeduce\v0.6\EmergencyDeductionEngine\docs\figs\wave_evolution.gif")
 
 
-    with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\wave_test.html", "w") as f:
-        print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
+    # with open (r"F:\ffproject\EmergencyDeducationEngine\docs\figs\wave_test.html", "w") as f:
+    #     print(ani.to_jshtml(), file = f)      #保存为html文件，可随时间回溯
 
-    plt.show()
+    #plt.show()
     print("===== Test accomplished! =====")
 
 if __name__=="__main__":

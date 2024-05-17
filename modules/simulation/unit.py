@@ -1,10 +1,3 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    unit.py
-# @Time:    2022/3/26 11:58
-# @Author:  Sun Zhu
-# @Version: 0.0.0
-
 from modules.simulation.simulator import Element
 
 class UnitBase(Element):

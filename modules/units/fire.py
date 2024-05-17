@@ -1,9 +1,3 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    fire.py
-# @Time:    2022/3/26 11:12
-# @Author:  Sun Zhu
-# @Version: 0.0.0
 
 from modules.simulation.unit import UnitBase
 from modules.simulation.hazard import HazardBase

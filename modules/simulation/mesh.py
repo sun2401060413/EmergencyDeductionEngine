@@ -1,9 +1,3 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    mesh.py
-# @Time:    2022/3/26 18:31
-# @Author:  Sun Zhu
-# @Version: 0.0.0
 
 import numpy as np
 from modules.simulation.simulator import Element

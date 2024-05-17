@@ -1,9 +1,4 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    envs.py
-# @Time:    2022/3/27 10:11
-# @Author:  Sun Zhu
-# @Version: 0.0.0
+
 
 import numpy as np
 from modules.simulation.mesh import MeshScene

@@ -1,9 +1,3 @@
-# !/usr/bin/python3
-# Coding:   utf-8
-# @File:    simulator.py
-# @Time:    2022/3/25 22:58
-# @Author:  Sun Zhu
-# @Version: 0.0.0
 
 class Simulator:
     """
